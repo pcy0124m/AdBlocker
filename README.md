@@ -124,7 +124,8 @@ certutil -encode release.keystore release.b64 && type release.b64
 ## 已知限制（重要）
 
 - **加密 DNS 拦不到**：DoH / DoT（走 443）无法用 DNS 过滤拦截。要全量过滤，请在系统「Private DNS」里指向过滤型服务器（如 `dns.adguard.com`）。
-- **短信彻底拦截需设为默认短信 App**：未设默认时只能尽力拦截，部分机型因 `WRITE_SMS` 被拒而失效（属预期）。
+- **短信彻底拦截需设为默认短信 App**：未设默认时只能尽力拦截，部分机型因 `WRITE_SMS` 被拒而失效（属预期）。非默认路径下 App 会先申请 `RECEIVE_SMS` 运行时权限，`abortBroadcast()` 才会真正触发。
+- **VPN 前台服务类型**：targetSdk 34 下 `AdBlockVpnService` 已声明 `android:foregroundServiceType="specialUse"`（含对应 `<property>`），否则在 Android 14 上 `startForeground` 会崩溃。如需上架 Google Play，需在该类型下补充 `specialUse` 的说明。
 - **VPN 常驻略耗电**：后台保持隧道会带来少量电量开销。
 - **未做真机/编译验证**：本仓库代码由 AI 生成，请在 Android Studio 或 GitHub Actions 首次构建后真机走查一遍。
 

@@ -1,12 +1,15 @@
 package com.example.adblocker
 
+import android.Manifest
 import android.app.role.RoleManager
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.VpnService
 import android.os.Build
 import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
@@ -117,8 +120,19 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // ---------- 垃圾短信拦截（默认短信 App） ----------
+    // ---------- 垃圾短信拦截（默认短信 App / 非默认尽力拦） ----------
     private fun requestSmsRole() {
+        // 非默认短信 App 的「尽力拦」依赖 RECEIVE_SMS 运行时授权（Android 6+ 危险权限），
+        // 先确保拿到它，abortBroadcast 路径才会真正触发。
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+            checkSelfPermission(Manifest.permission.RECEIVE_SMS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.RECEIVE_SMS),
+                REQ_SMS_PERM
+            )
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val rm = getSystemService(RoleManager::class.java)
             if (!rm.isRoleHeld(RoleManager.ROLE_SMS)) {
@@ -170,6 +184,21 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    @Deprecated("Deprecated in Java")
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQ_SMS_PERM &&
+            grantResults.isNotEmpty() &&
+            grantResults[0] == PackageManager.PERMISSION_GRANTED
+        ) {
+            toast("已获得短信接收权限，非默认 App 也能尽力拦截")
+        }
+    }
+
     override fun onDestroy() {
         scope.cancel()
         super.onDestroy()
@@ -183,5 +212,6 @@ class MainActivity : AppCompatActivity() {
         private const val REQ_VPN = 1
         private const val REQ_CALL = 2
         private const val REQ_SMS = 3
+        private const val REQ_SMS_PERM = 4
     }
 }

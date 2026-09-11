@@ -27,13 +27,18 @@
         android:theme="@style/AppTheme">
 
         <!-- 广告拦截：本地 DNS 过滤 VPN -->
+        <!-- targetSdk 34 起必须声明 foregroundServiceType，否则 startForeground 在 Android 14 上崩溃 -->
         <service
             android:name=".AdBlockVpnService"
             android:permission="android.permission.BIND_VPN_SERVICE"
-            android:exported="false">
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
             <intent-filter>
                 <action android:name="android.net.VpnService" />
             </intent-filter>
+            <property
+                android:name="android.foregroundServiceType"
+                android:value="specialUse" />
         </service>
 
         <!-- 骚扰电话拦截：CallScreeningService -->
