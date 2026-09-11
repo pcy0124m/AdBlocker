@@ -2,8 +2,6 @@ package com.example.adblocker.data
 
 import android.content.Context
 import androidx.room.*
-import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Entity(tableName = "blocked_numbers")
 data class BlockedNumber(
@@ -26,7 +24,7 @@ interface BlockedNumberDao {
     suspend fun delete(b: BlockedNumber)
 }
 
-@Database(entities = [BlockedNumber::class], version = 1)
+@Database(entities = [BlockedNumber::class], version = 1, exportSchema = false)
 abstract class BlockListDatabase : RoomDatabase() {
     abstract fun blockedNumberDao(): BlockedNumberDao
 

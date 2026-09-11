@@ -10,6 +10,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
@@ -75,7 +76,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startVpn() {
-        startForegroundService(Intent(this, AdBlockVpnService::class.java))
+        // ContextCompat 在 API < 26 上回退到 startService，避免 NoSuchMethodError
+        ContextCompat.startForegroundService(this, Intent(this, AdBlockVpnService::class.java))
         updateVpnButton()
     }
 

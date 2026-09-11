@@ -2,6 +2,7 @@ package com.example.adblocker
 
 import android.content.Context
 import com.example.adblocker.data.BlockListDatabase
+import com.example.adblocker.data.BlockedNumber
 import java.util.concurrent.ConcurrentHashMap
 
 /**

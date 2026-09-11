@@ -27,7 +27,9 @@ class CallBlockerService : CallScreeningService() {
     }
 
     private fun respond(details: Call.Details, block: Boolean) {
-        val resp = Call.Response.Builder()
+        // 注意：来电响应类是 CallScreeningService 的嵌套类 CallResponse，
+        // 不是 android.telecom.Call.Response。
+        val resp = CallScreeningService.CallResponse.Builder()
         if (block) {
             resp.setDisallowCall(true)
             resp.setRejectCall(true)
