@@ -5,6 +5,10 @@ on:
     tags: [ "v*" ]
   workflow_dispatch:
 
+# 创建 Release 需要写权限；若仓库默认 token 为只读，必须显式声明
+permissions:
+  contents: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -60,3 +64,50 @@ jobs:
         with:
           name: adblocker-release-aab
           path: app/build/outputs/bundle/release/*.aab
+
+      # 把产物整理成易识别的文件名，供 Release 附件使用
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+          cp app/build/outputs/apk/release/*.apk release-assets/AdBlocker-release.apk
+          cp app/build/outputs/bundle/release/*.aab release-assets/AdBlocker-release.aab
+          ls -lh release-assets
+
+      # 关键一步：创建 GitHub Release，让签名包出现在仓库的 Releases 页面（可直接下载，
+      # 不像 Actions artifacts 那样必须登录后在 Actions 页里翻找）。
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            TAG="$GITHUB_REF_NAME"
+          else
+            TAG="v0.1.${GITHUB_RUN_NUMBER}"
+          fi
+          echo "Publishing release with tag: $TAG"
+
+          cat > release-notes.md <<EOF
+          已签名的 Android 安装包，由 GitHub Actions 自动构建。
+
+          - 构建来源：run #${GITHUB_RUN_NUMBER}
+          - 提交：\`${GITHUB_SHA}\`
+          - 签名：由 CI Secrets 中的 keystore 完成
+
+          | 文件 | 用途 |
+          |---|---|
+          | \`AdBlocker-release.apk\` | 签名版 APK，直接安装到手机 |
+          | \`AdBlocker-release.aab\` | 签名版 AAB，用于上架应用商店 |
+
+          > 未签名的 debug 包不在此处，可在本仓库 Actions 页面对应 run 的 Artifacts 中下载。
+          EOF
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists, uploading assets with --clobber"
+            gh release upload "$TAG" release-assets/* --clobber
+          else
+            gh release create "$TAG" release-assets/* \
+              --title "AdBlocker $TAG" \
+              --notes-file release-notes.md \
+              --target "$GITHUB_SHA"
+          fi
