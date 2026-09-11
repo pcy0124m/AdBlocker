@@ -1,18 +1,46 @@
 <resources>
     <string name="app_name">AdBlocker</string>
+    <string name="app_subtitle">免 Root · 广告 / 骚扰电话 / 垃圾短信拦截</string>
+
+    <!-- 顶部按钮 -->
     <string name="start_vpn">启动广告拦截</string>
     <string name="stop_vpn">停止广告拦截</string>
     <string name="enable_call">开启骚扰电话拦截</string>
     <string name="enable_sms">开启垃圾短信拦截</string>
-    <string name="add_number">添加黑名单号码</string>
+    <string name="add_number">添加</string>
     <string name="update_rules">在线更新广告规则</string>
     <string name="updating_rules">正在更新广告规则…</string>
     <string name="rules_updated">广告规则已更新（共 %1$d 条）</string>
     <string name="rules_update_failed">广告规则更新失败，已保留本地规则</string>
+    <string name="hint_number">输入手机号 / 号码</string>
+
+    <!-- 运行状态 -->
+    <string name="section_status">运行状态</string>
+    <string name="status_label_ad">广告拦截</string>
+    <string name="status_label_call">电话拦截</string>
+    <string name="status_label_sms">短信拦截</string>
+    <string name="status_on">已开启</string>
+    <string name="status_off">未开启</string>
+
+    <!-- 功能卡片 -->
+    <string name="card_ad_title">广告拦截</string>
+    <string name="card_ad_desc">本地 VPN 做 DNS 过滤，命中广告域名直接返回 NXDOMAIN；规则可在线更新，运行中即时生效。</string>
+    <string name="card_call_title">骚扰电话拦截</string>
+    <string name="card_call_desc">开启来电筛查后，黑名单号码来电会被直接拒接（需 Android 10+）。</string>
+    <string name="card_sms_title">垃圾短信拦截</string>
+    <string name="card_sms_desc">命中黑名单或垃圾关键词的短信将被拦截；设为默认短信 App 可彻底拦截，否则尽力拦截。</string>
+
+    <!-- 黑名单 -->
+    <string name="section_blocklist">黑名单（电话 / 短信共用）</string>
+    <string name="empty_numbers">暂无黑名单号码</string>
+    <string name="remove_number">删除</string>
+
+    <!-- 开机自启 -->
     <string name="auto_start_vpn">开机自动启动广告拦截</string>
     <string name="auto_start_enabled">已开启：开机后将自动启动广告拦截</string>
     <string name="auto_start_disabled">已关闭开机自启</string>
-    <string name="hint_number">输入手机号 / 号码</string>
+
+    <!-- 通知 -->
     <string name="channel_name">AdBlocker 服务</string>
     <string name="channel_desc">广告拦截 VPN 后台运行中</string>
     <string name="notif_title">AdBlocker 运行中</string>

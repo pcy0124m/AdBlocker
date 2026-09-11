@@ -7,15 +7,17 @@ import android.content.pm.PackageManager
 import android.net.VpnService
 import android.os.Build
 import android.os.Bundle
+import android.view.View
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.textfield.TextInputEditText
-import androidx.recyclerview.widget.RecyclerView
 import com.example.adblocker.util.HostsUpdater
 import com.example.adblocker.util.Prefs
 import kotlinx.coroutines.*
@@ -30,6 +32,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var switchAutoStart: MaterialSwitch
     private lateinit var etNumber: TextInputEditText
     private lateinit var rvNumbers: RecyclerView
+    private lateinit var tvEmpty: TextView
+    private lateinit var tvStatusAd: TextView
+    private lateinit var tvStatusCall: TextView
+    private lateinit var tvStatusSms: TextView
     private lateinit var adapter: NumberAdapter
 
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
@@ -49,6 +55,10 @@ class MainActivity : AppCompatActivity() {
         switchAutoStart = findViewById(R.id.switchAutoStart)
         etNumber = findViewById(R.id.etNumber)
         rvNumbers = findViewById(R.id.rvNumbers)
+        tvEmpty = findViewById(R.id.tvEmpty)
+        tvStatusAd = findViewById(R.id.tvStatusAd)
+        tvStatusCall = findViewById(R.id.tvStatusCall)
+        tvStatusSms = findViewById(R.id.tvStatusSms)
 
         adapter = NumberAdapter { number -> removeNumber(number) }
         rvNumbers.layoutManager = LinearLayoutManager(this)
@@ -72,6 +82,32 @@ class MainActivity : AppCompatActivity() {
         }
 
         updateVpnButton()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // 从系统设置页返回时，角色状态可能已变化，这里刷新一次
+        updateVpnButton()
+    }
+
+    // ---------- 运行状态总览 ----------
+    private fun refreshStatus() {
+        setStatus(tvStatusAd, AdBlockVpnService.running)
+        setStatus(tvStatusCall, isRoleHeld(RoleManager.ROLE_CALL_SCREENING))
+        setStatus(tvStatusSms, isRoleHeld(RoleManager.ROLE_SMS))
+    }
+
+    private fun isRoleHeld(role: String): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
+        val rm = getSystemService(RoleManager::class.java) ?: return false
+        return rm.isRoleHeld(role)
+    }
+
+    private fun setStatus(tv: TextView, on: Boolean) {
+        tv.setText(if (on) R.string.status_on else R.string.status_off)
+        tv.setTextColor(
+            ContextCompat.getColor(this, if (on) R.color.status_on else R.color.status_off)
+        )
     }
 
     // ---------- 广告拦截（VPN） ----------
@@ -99,6 +135,7 @@ class MainActivity : AppCompatActivity() {
         btnVpn.setText(
             if (AdBlockVpnService.running) R.string.stop_vpn else R.string.start_vpn
         )
+        refreshStatus()
     }
 
     // ---------- 广告规则在线更新 ----------
@@ -123,7 +160,7 @@ class MainActivity : AppCompatActivity() {
     private fun requestCallScreening() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val rm = getSystemService(RoleManager::class.java)
-            if (!rm.isRoleHeld(RoleManager.ROLE_CALL_SCREENING)) {
+            if (rm != null && !rm.isRoleHeld(RoleManager.ROLE_CALL_SCREENING)) {
                 startActivityForResult(
                     rm.createRequestRoleIntent(RoleManager.ROLE_CALL_SCREENING),
                     REQ_CALL
@@ -151,7 +188,7 @@ class MainActivity : AppCompatActivity() {
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val rm = getSystemService(RoleManager::class.java)
-            if (!rm.isRoleHeld(RoleManager.ROLE_SMS)) {
+            if (rm != null && !rm.isRoleHeld(RoleManager.ROLE_SMS)) {
                 startActivityForResult(
                     rm.createRequestRoleIntent(RoleManager.ROLE_SMS),
                     REQ_SMS
@@ -186,7 +223,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun refreshList() {
-        adapter.submit(BlockListManager.getAll())
+        val items = BlockListManager.getAll()
+        adapter.submit(items)
+        tvEmpty.visibility = if (items.isEmpty()) View.VISIBLE else View.GONE
     }
 
     // ---------- 回调 ----------
@@ -194,9 +233,15 @@ class MainActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         when (requestCode) {
-            REQ_VPN -> if (resultCode == RESULT_OK) startVpn()
-            REQ_CALL -> toast("电话拦截权限已设置")
-            REQ_SMS -> toast("默认短信权限已设置")
+            REQ_VPN -> if (resultCode == RESULT_OK) startVpn() else updateVpnButton()
+            REQ_CALL -> {
+                toast("电话拦截权限已设置")
+                refreshStatus()
+            }
+            REQ_SMS -> {
+                toast("默认短信权限已设置")
+                refreshStatus()
+            }
         }
     }
 

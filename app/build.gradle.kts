@@ -18,11 +18,16 @@ android {
 
     signingConfigs {
         create("release") {
-            // 签名信息从 CI Secrets 注入的环境变量读取；本地不带 env 时不影响 debug 构建
-            storeFile = file(System.getenv("KEYSTORE_PATH") ?: "app/release.keystore")
-            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
-            keyAlias = System.getenv("KEY_ALIAS") ?: ""
-            keyPassword = System.getenv("KEY_PASSWORD") ?: ""
+            // 签名信息从 CI Secrets 注入的环境变量读取；本地不带 env 时不影响 debug 构建。
+            // 注意：build 脚本里 file() 是相对模块目录（app/）解析的，所以这里用
+            // rootProject.file() 把 KEYSTORE_PATH 统一按「仓库根目录」解析，避免拼出 app/app/xxx。
+            val ksPath = System.getenv("KEYSTORE_PATH")
+            if (!ksPath.isNullOrEmpty()) {
+                storeFile = rootProject.file(ksPath)
+                storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
+                keyAlias = System.getenv("KEY_ALIAS") ?: ""
+                keyPassword = System.getenv("KEY_PASSWORD") ?: ""
+            }
         }
     }
 
