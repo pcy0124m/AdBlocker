@@ -9,6 +9,9 @@
     <string name="updating_rules">正在更新广告规则…</string>
     <string name="rules_updated">广告规则已更新（共 %1$d 条）</string>
     <string name="rules_update_failed">广告规则更新失败，已保留本地规则</string>
+    <string name="auto_start_vpn">开机自动启动广告拦截</string>
+    <string name="auto_start_enabled">已开启：开机后将自动启动广告拦截</string>
+    <string name="auto_start_disabled">已关闭开机自启</string>
     <string name="hint_number">输入手机号 / 号码</string>
     <string name="channel_name">AdBlocker 服务</string>
     <string name="channel_desc">广告拦截 VPN 后台运行中</string>

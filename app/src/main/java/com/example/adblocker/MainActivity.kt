@@ -13,9 +13,11 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.textfield.TextInputEditText
 import androidx.recyclerview.widget.RecyclerView
 import com.example.adblocker.util.HostsUpdater
+import com.example.adblocker.util.Prefs
 import kotlinx.coroutines.*
 
 class MainActivity : AppCompatActivity() {
@@ -25,6 +27,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnSms: MaterialButton
     private lateinit var btnAdd: MaterialButton
     private lateinit var btnUpdateRules: MaterialButton
+    private lateinit var switchAutoStart: MaterialSwitch
     private lateinit var etNumber: TextInputEditText
     private lateinit var rvNumbers: RecyclerView
     private lateinit var adapter: NumberAdapter
@@ -43,6 +46,7 @@ class MainActivity : AppCompatActivity() {
         btnSms = findViewById(R.id.btnSms)
         btnAdd = findViewById(R.id.btnAdd)
         btnUpdateRules = findViewById(R.id.btnUpdateRules)
+        switchAutoStart = findViewById(R.id.switchAutoStart)
         etNumber = findViewById(R.id.etNumber)
         rvNumbers = findViewById(R.id.rvNumbers)
 
@@ -56,6 +60,16 @@ class MainActivity : AppCompatActivity() {
         btnSms.setOnClickListener { requestSmsRole() }
         btnAdd.setOnClickListener { addNumber() }
         btnUpdateRules.setOnClickListener { updateRules() }
+
+        // 先设置初始状态再挂监听，避免初始化时误触发 Toast
+        switchAutoStart.isChecked = Prefs.isAutoStartVpn(this)
+        switchAutoStart.setOnCheckedChangeListener { _, checked ->
+            Prefs.setAutoStartVpn(this, checked)
+            toast(
+                if (checked) getString(R.string.auto_start_enabled)
+                else getString(R.string.auto_start_disabled)
+            )
+        }
 
         updateVpnButton()
     }

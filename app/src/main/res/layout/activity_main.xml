@@ -45,6 +45,13 @@
             android:layout_marginBottom="16dp"
             android:text="@string/update_rules" />
 
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchAutoStart"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:text="@string/auto_start_vpn" />
+
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etNumber"
             android:layout_width="match_parent"
