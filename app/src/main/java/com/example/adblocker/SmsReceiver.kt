@@ -7,6 +7,7 @@ import android.os.Build
 import android.provider.Telephony
 import android.telephony.SmsMessage
 import android.content.ContentValues
+import com.example.adblocker.util.SmsNotifier
 
 /**
  * 垃圾短信拦截接收器。
@@ -65,8 +66,11 @@ class SmsReceiver : BroadcastReceiver() {
                 tryDeleteFromInbox(context, number, body.toString())
             }
         } else if (isDeliver) {
-            // 默认短信 App 必须负责把放行的短信写入短信库。
+            // 默认短信 App 必须负责把放行的短信写入短信库（写入后，用户原来的短信 App 才能读到）。
             persistMessages(context, pdus, format)
+            // 默认短信 App 场景下，其它 App 收不到新短信也就不会弹通知，
+            // 所以放行的短信需要由我们自己通知，避免用户以为"短信收不到了"。
+            SmsNotifier.notifyIncoming(context, number, body.toString())
         }
     }
 

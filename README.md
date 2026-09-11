@@ -14,7 +14,7 @@
 |---|---|---|
 | 广告（应用内 / 网页） | `VpnService` 建立本地 VPN 隧道，对匹配广告域名的上游 DNS 查询返回 `NXDOMAIN` | 首次开启需授予 VPN 权限 |
 | 骚扰电话 | `CallScreeningService`，命中黑名单直接拒接 | 需在系统中将该 App 设为「来电筛查应用」 |
-| 垃圾短信 | `SmsReceiver` 接收短信广播，命中黑名单 / 关键词拦截 | 设为默认短信 App 可真正拦截；否则尽力拦截 |
+| 垃圾短信 | `SmsReceiver` 接收短信广播，命中黑名单 / 关键词拦截 | **彻底拦截**需设为默认短信 App（须凑齐 4 个资格组件）；否则只能尽力拦截 |
 | 开机自启 | `BootReceiver` 监听 `BOOT_COMPLETED`，自动拉起 VPN（需先手动授权过 VPN） | 无需额外权限（`RECEIVE_BOOT_COMPLETED` 为普通权限） |
 | 拦截统计 | 显示累计拦截 DNS 查询次数与规则库域名数 | — |
 | 暂停拦截 | 一键让 VPN 只转发不过滤，用于排查某个 App 联网异常 | — |
@@ -129,9 +129,11 @@ certutil -encode release.keystore release.b64 && type release.b64
 2. 打开 App，点 **「开启广告拦截」** → 授予 VPN 权限。
 3. 点 **「在线更新广告规则」**，等待 Toast 提示已加载的域名条数。
 4. 点 **「开启电话拦截」** → 在系统弹窗中将该 App 设为「来电筛查应用」，并在号码框输入要拦截的号码后点「添加黑名单」。
-5. 点 **「开启短信拦截」**：
-   - 设为默认短信 App → 真正的拦截（命中短信不进收件箱）；
-   - 未设默认 → 尽力拦截（高优先级有序广播下 `abortBroadcast`，并 best-effort 尝试从短信库删除）。
+5. 点 **「开启短信拦截」** → 弹出说明框，选择你想要的强度：
+   - **设为默认短信 App**（可彻底拦截）：命中短信不落库、不显示；放行的短信会写回系统短信库并弹通知，**你原来的短信 App 仍能查看和发送短信**（彩信除外）。
+     > 「默认短信 App」是 Android 的系统硬性要求 —— 只有它才有权阻止短信落库。因此本应用声明了系统要求的 **4 个组件**（`SMS_DELIVER` / `WAP_PUSH_DELIVER` / `ACTION_SENDTO` / `RESPOND_VIA_MESSAGE`），**少任何一个都不会出现在「设置 → 默认应用 → 短信」列表里**，申请也会失败。
+   - **仅尽力拦截**：不改系统默认短信 App，只申请 `RECEIVE_SMS`。能阻止其它第三方 App 收到命中短信，但**无法阻止系统落库**。
+   - 若系统未弹出设置框（部分国产 ROM 只认手动设置），会自动跳到「设置 → 默认应用」，手动选中 AdBlocker 即可。
 6. 打开 **「开机自动启动广告拦截」** 开关 → 之后每次开机/重启会自动拉起 VPN。
    - 前提是 VPN 已授权过（首次需手动开启一次）；开机广播里无法弹 VPN 授权框，未授权时会静默跳过。
 7. **遇到某个 App 联网异常（如短剧 / 视频打不开）**，按顺序试：
@@ -144,7 +146,10 @@ certutil -encode release.keystore release.b64 && type release.b64
 ## 已知限制（重要）
 
 - **加密 DNS 拦不到**：DoH / DoT（走 443）无法用 DNS 过滤拦截。要全量过滤，请在系统「Private DNS」里指向过滤型服务器（如 `dns.adguard.com`）。
-- **短信彻底拦截需设为默认短信 App**：未设默认时只能尽力拦截，部分机型因 `WRITE_SMS` 被拒而失效（属预期）。非默认路径下 App 会先申请 `RECEIVE_SMS` 运行时权限，`abortBroadcast()` 才会真正触发。
+- **短信「彻底拦截」必须设为默认短信 App**（Android 系统限制：只有默认短信 App 能阻止短信落库）：
+  - 成为默认短信 App 的代价：**彩信（MMS）不再接收** —— 本应用声明了 `MmsReceiver` 以满足资格要求，但不解析彩信（国内彩信基本已停用）；放行的普通短信由本应用写回短信库并负责弹通知。
+  - 未设默认时只能尽力拦截，部分机型因 `WRITE_SMS` 被拒而失效（属预期）。
+  - 若「默认应用 → 短信」列表里看不到本应用，先确认已安装**本次版本**（2026-09-11 之后补充了 4 个资格组件），再重启手机重试。
 - **VPN 前台服务类型**：targetSdk 34 下 `AdBlockVpnService` 已声明 `android:foregroundServiceType="specialUse"`（含对应 `<property>`），否则在 Android 14 上 `startForeground` 会崩溃。如需上架 Google Play，需在该类型下补充 `specialUse` 的说明。
 - **开机自启受系统省电策略影响**：部分国产 ROM 需在「自启动管理」里额外放行本 App，否则开机广播可能不触发。
 - **VPN 常驻略耗电**：后台保持隧道会带来少量电量开销。
@@ -167,7 +172,10 @@ AdBlocker/
 │   ├─ java/com/example/adblocker/
 │   │   ├─ AdBlockVpnService.kt   # VPN 本地 DNS 过滤核心
 │   │   ├─ CallBlockerService.kt  # 来电筛查拒接
-│   │   ├─ SmsReceiver.kt         # 短信拦截（默认/非默认折中）
+│   │   ├─ SmsReceiver.kt         # 短信拦截（默认/非默认折中）+ 放行短信通知
+│   │   ├─ ComposeSmsActivity.kt  # 发送短信入口（默认短信 App 资格组件）
+│   │   ├─ RespondViaMessageService.kt # 来电「用消息回复」（资格组件）
+│   │   ├─ MmsReceiver.kt         # 彩信到达广播（资格组件，不做彩信解析）
 │   │   ├─ BootReceiver.kt        # 开机自启 VPN
 │   │   ├─ MainActivity.kt        # UI 与权限申请
 │   │   ├─ data/BlockListDatabase.kt
@@ -176,6 +184,7 @@ AdBlocker/
 │   │       ├─ DnsUtils.kt        # DNS 包解析 / NXDOMAIN / SERVFAIL 构造
 │   │       ├─ HostsLoader.kt     # 内置 hosts 解析
 │   │       ├─ HostsUpdater.kt    # 在线规则订阅源 + 白名单 + 拦截统计
+│   │       ├─ SmsNotifier.kt     # 放行短信通知（默认短信 App 场景必需）
 │   │       └─ Prefs.kt           # 本地偏好（自启 / 暂停 / 白名单 / 累计拦截数）
 │   └─ res/...
 ├─ gradlew / gradlew.bat / gradle/wrapper/  # 完整 Gradle Wrapper

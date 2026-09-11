@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.net.VpnService
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
@@ -16,6 +17,7 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.textfield.TextInputEditText
 import com.example.adblocker.util.HostsUpdater
@@ -133,8 +135,21 @@ class MainActivity : AppCompatActivity() {
     private fun refreshStatus() {
         setStatus(tvStatusAd, AdBlockVpnService.running)
         setStatus(tvStatusCall, isRoleHeld(RoleManager.ROLE_CALL_SCREENING))
-        setStatus(tvStatusSms, isRoleHeld(RoleManager.ROLE_SMS))
+
+        // 短信是三态：已设默认短信 App（彻底拦）/ 仅授权（尽力拦）/ 未开启
+        when {
+            isRoleHeld(RoleManager.ROLE_SMS) -> setStatus(tvStatusSms, true)
+            hasReceiveSmsPermission() -> {
+                tvStatusSms.setText(R.string.status_partial)
+                tvStatusSms.setTextColor(ContextCompat.getColor(this, R.color.icon_sms))
+            }
+            else -> setStatus(tvStatusSms, false)
+        }
     }
+
+    private fun hasReceiveSmsPermission(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.M ||
+            checkSelfPermission(Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED
 
     private fun isRoleHeld(role: String): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
@@ -226,30 +241,87 @@ class MainActivity : AppCompatActivity() {
     }
 
     // ---------- 垃圾短信拦截（默认短信 App / 非默认尽力拦） ----------
+    /**
+     * 短信拦截有两条路，代价不同，所以先弹窗讲清楚再让用户选：
+     *   A. 设为默认短信 App —— 唯一能"彻底拦截"的方式（系统硬性要求）
+     *   B. 仅授权 RECEIVE_SMS —— 只能"尽力拦"，不改变系统默认短信 App
+     */
     private fun requestSmsRole() {
-        // 非默认短信 App 的「尽力拦」依赖 RECEIVE_SMS 运行时授权（Android 6+ 危险权限），
-        // 先确保拿到它，abortBroadcast 路径才会真正触发。
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
-            checkSelfPermission(Manifest.permission.RECEIVE_SMS) != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.RECEIVE_SMS),
-                REQ_SMS_PERM
-            )
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.sms_dialog_title)
+            .setMessage(R.string.sms_dialog_message)
+            .setPositiveButton(R.string.sms_dialog_set_default) { _, _ -> setDefaultSmsApp() }
+            .setNeutralButton(R.string.sms_dialog_best_effort) { _, _ -> enableBestEffortSms() }
+            .setNegativeButton(R.string.sms_dialog_cancel, null)
+            .show()
+    }
+
+    /** 路线 A：申请 ROLE_SMS（成为默认短信 App）。 */
+    private fun setDefaultSmsApp() {
+        ensureSmsPermissions()
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            // Android 10 以下没有 RoleManager，只能引导到系统设置手动选择
+            toast(getString(R.string.sms_role_unavailable))
+            openDefaultAppsSettings()
+            return
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val rm = getSystemService(RoleManager::class.java)
-            if (rm != null && !rm.isRoleHeld(RoleManager.ROLE_SMS)) {
-                startActivityForResult(
-                    rm.createRequestRoleIntent(RoleManager.ROLE_SMS),
-                    REQ_SMS
-                )
-            } else {
-                toast("已设为默认短信 App，可拦截垃圾短信")
+
+        val rm = getSystemService(RoleManager::class.java)
+        if (rm == null || !rm.isRoleAvailable(RoleManager.ROLE_SMS)) {
+            toast(getString(R.string.sms_role_unavailable))
+            openDefaultAppsSettings()
+            return
+        }
+        if (rm.isRoleHeld(RoleManager.ROLE_SMS)) {
+            toast(getString(R.string.sms_role_already))
+            refreshStatus()
+            return
+        }
+        startActivityForResult(rm.createRequestRoleIntent(RoleManager.ROLE_SMS), REQ_SMS)
+    }
+
+    /** 路线 B：只拿 RECEIVE_SMS，保持系统默认短信 App 不变，尽力拦截。 */
+    private fun enableBestEffortSms() {
+        ensureSmsPermissions()
+        toast(getString(R.string.sms_best_effort_enabled))
+        refreshStatus()
+    }
+
+    /**
+     * 短信拦截所需运行时权限：
+     *   - RECEIVE_SMS：非默认短信 App 的「尽力拦」路径依赖它
+     *   - POST_NOTIFICATIONS（Android 13+）：成为默认短信 App 后，放行短信的通知需要它
+     */
+    private fun ensureSmsPermissions() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return
+        val needed = mutableListOf<String>()
+        if (checkSelfPermission(Manifest.permission.RECEIVE_SMS) != PackageManager.PERMISSION_GRANTED) {
+            needed.add(Manifest.permission.RECEIVE_SMS)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) {
+            needed.add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        if (needed.isNotEmpty()) {
+            ActivityCompat.requestPermissions(this, needed.toTypedArray(), REQ_SMS_PERM)
+        }
+    }
+
+    /** 兜底：跳到系统「默认应用」设置页，部分 ROM（MIUI / HarmonyOS）只认手动设置。 */
+    private fun openDefaultAppsSettings() {
+        try {
+            val action =
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
+                    Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS
+                else Settings.ACTION_SETTINGS
+            startActivity(Intent(action))
+        } catch (_: Exception) {
+            try {
+                startActivity(Intent(Settings.ACTION_SETTINGS))
+            } catch (_: Exception) {
             }
-        } else {
-            toast("请到系统设置中将本 App 设为默认短信应用")
         }
     }
 
@@ -320,7 +392,13 @@ class MainActivity : AppCompatActivity() {
                 refreshStatus()
             }
             REQ_SMS -> {
-                toast("默认短信权限已设置")
+                // 不能只看 resultCode：部分 ROM 会返回 RESULT_OK 但实际未授予，
+                // 所以以 isRoleHeld 的真实状态为准。
+                if (isRoleHeld(RoleManager.ROLE_SMS)) {
+                    toast(getString(R.string.sms_role_granted))
+                } else {
+                    toast(getString(R.string.sms_role_denied))
+                }
                 refreshStatus()
             }
         }
@@ -334,11 +412,11 @@ class MainActivity : AppCompatActivity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == REQ_SMS_PERM &&
-            grantResults.isNotEmpty() &&
-            grantResults[0] == PackageManager.PERMISSION_GRANTED
+            grantResults.any { it == PackageManager.PERMISSION_GRANTED }
         ) {
-            toast("已获得短信接收权限，非默认 App 也能尽力拦截")
+            toast("短信拦截所需权限已就绪")
         }
+        refreshStatus()
     }
 
     override fun onDestroy() {

@@ -18,6 +18,11 @@
     <!-- 开机自启（可选） -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- 涉及短信能力；声明为「非必需」以便在无通话模块的平板/设备上也能安装 -->
+    <uses-feature
+        android:name="android.hardware.telephony"
+        android:required="false" />
+
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
@@ -61,6 +66,58 @@
             </intent-filter>
             <intent-filter>
                 <action android:name="android.provider.Telephony.SMS_DELIVER" />
+            </intent-filter>
+        </receiver>
+
+        <!-- ================= 默认短信 App（ROLE_SMS）资格组件 =================
+             系统要求下面 4 个组件【缺一不可】，缺任何一个本应用都不会出现在
+             「设置 → 默认应用 → 短信」的可选列表里，申请 ROLE_SMS 也会失败。
+             (1) SmsReceiver 的 SMS_DELIVER 过滤器 —— 见上方
+             (2) ComposeSmsActivity：ACTION_SENDTO（sms/smsto/mms/mmsto）
+             (3) RespondViaMessageService：ACTION_RESPOND_VIA_MESSAGE
+             (4) MmsReceiver：WAP_PUSH_DELIVER（彩信）
+             ================================================================== -->
+
+        <!-- (2) 发送短信入口：其它 App 调用"分享到短信 / 发送短信"时派发到这里 -->
+        <activity
+            android:name=".ComposeSmsActivity"
+            android:exported="true"
+            android:label="@string/compose_title"
+            android:theme="@style/AppTheme">
+            <intent-filter>
+                <action android:name="android.intent.action.SENDTO" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="sms" />
+                <data android:scheme="smsto" />
+                <data android:scheme="mms" />
+                <data android:scheme="mmsto" />
+            </intent-filter>
+        </activity>
+
+        <!-- (3) 来电时"用消息回复"的后端服务 -->
+        <service
+            android:name=".RespondViaMessageService"
+            android:exported="true"
+            android:permission="android.permission.SEND_RESPOND_VIA_MESSAGE">
+            <intent-filter>
+                <action android:name="android.intent.action.RESPOND_VIA_MESSAGE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="sms" />
+                <data android:scheme="smsto" />
+                <data android:scheme="mms" />
+                <data android:scheme="mmsto" />
+            </intent-filter>
+        </service>
+
+        <!-- (4) 彩信到达广播（本应用不解析彩信，仅为满足资格要求） -->
+        <receiver
+            android:name=".MmsReceiver"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_WAP_PUSH">
+            <intent-filter>
+                <action android:name="android.provider.Telephony.WAP_PUSH_DELIVER" />
+                <data android:mimeType="application/vnd.wap.mms-message" />
             </intent-filter>
         </receiver>
 

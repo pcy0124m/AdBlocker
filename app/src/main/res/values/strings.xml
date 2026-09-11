@@ -68,4 +68,29 @@
     <string name="whitelist_added">已加入白名单：%1$s</string>
     <string name="whitelist_invalid">域名格式不正确</string>
     <string name="whitelist_desc">若某个视频 / 短剧 App 打不开，把它用到的域名加进来即可立即放行。</string>
+
+    <!-- 短信拦截：模式选择 / 状态 -->
+    <string name="status_partial">尽力拦</string>
+    <string name="sms_dialog_title">开启垃圾短信拦截</string>
+    <string name="sms_dialog_message">要「彻底拦截」，必须把本应用设为默认短信 App —— 这是 Android 系统的硬性要求（只有默认短信 App 才能阻止短信落库）。\n\n代价说明：\n• 本应用将接管短信接收，并会把放行的短信写回系统短信库，你原来的短信 App 仍可正常查看和发送短信；\n• 彩信（MMS）不再接收（国内基本已停用）。\n\n也可以先选「仅尽力拦截」：能阻止其它第三方 App 收到命中短信，但无法阻止系统落库。</string>
+    <string name="sms_dialog_set_default">设为默认短信 App</string>
+    <string name="sms_dialog_best_effort">仅尽力拦截</string>
+    <string name="sms_dialog_cancel">取消</string>
+    <string name="sms_role_granted">已设为默认短信 App，现在可彻底拦截垃圾短信</string>
+    <string name="sms_role_denied">未设为默认短信 App，短信拦截仍处于「尽力拦」状态</string>
+    <string name="sms_role_already">本应用已是默认短信 App</string>
+    <string name="sms_role_unavailable">当前系统不支持应用内申请，请在「设置 → 应用 → 默认应用 → 短信」中手动选择本应用</string>
+    <string name="sms_best_effort_enabled">已开启「尽力拦截」：可阻止其它第三方 App 收到命中短信，但无法阻止系统落库</string>
+
+    <!-- 发送短信界面（默认短信 App 必需入口） -->
+    <string name="compose_title">发送短信</string>
+    <string name="compose_hint">本应用已作为默认短信 App 接管短信接收，因此需要自行提供发送入口。发送记录会写入系统短信库。</string>
+    <string name="compose_number">接收号码</string>
+    <string name="compose_body">短信内容</string>
+    <string name="compose_send">发送</string>
+    <string name="compose_sent">短信已发送</string>
+    <string name="compose_send_failed">发送失败，请检查号码或权限</string>
+    <string name="compose_empty_number">请输入接收号码</string>
+    <string name="compose_empty_body">请输入短信内容</string>
+    <string name="compose_no_permission">缺少发送短信权限，请在系统设置中授权</string>
 </resources>
