@@ -16,8 +16,14 @@
 | 骚扰电话 | `CallScreeningService`，命中黑名单直接拒接 | 需在系统中将该 App 设为「来电筛查应用」 |
 | 垃圾短信 | `SmsReceiver` 接收短信广播，命中黑名单 / 关键词拦截 | 设为默认短信 App 可真正拦截；否则尽力拦截 |
 | 开机自启 | `BootReceiver` 监听 `BOOT_COMPLETED`，自动拉起 VPN（需先手动授权过 VPN） | 无需额外权限（`RECEIVE_BOOT_COMPLETED` 为普通权限） |
+| 拦截统计 | 显示累计拦截 DNS 查询次数与规则库域名数 | — |
+| 暂停拦截 | 一键让 VPN 只转发不过滤，用于排查某个 App 联网异常 | — |
+| 域名白名单 | 被误拦截的域名（如视频 / 短剧 CDN）加入后立即放行，支持 `*.example.com` | — |
 
 广告域名规则支持 **在线更新**（内置 AdAway / StevenBlack 订阅源），VPN 运行中实时生效。
+
+> **上层 DNS 说明**：VPN 使用 `223.5.5.5`（阿里）、`119.29.29.29`（腾讯）、`114.114.114.114` 作为上游并按序回退，
+> 另每次转发都带 2.5s 超时 —— 避免单个上游不可达时拖垮全部域名解析。
 
 ---
 
@@ -128,6 +134,10 @@ certutil -encode release.keystore release.b64 && type release.b64
    - 未设默认 → 尽力拦截（高优先级有序广播下 `abortBroadcast`，并 best-effort 尝试从短信库删除）。
 6. 打开 **「开机自动启动广告拦截」** 开关 → 之后每次开机/重启会自动拉起 VPN。
    - 前提是 VPN 已授权过（首次需手动开启一次）；开机广播里无法弹 VPN 授权框，未授权时会静默跳过。
+7. **遇到某个 App 联网异常（如短剧 / 视频打不开）**，按顺序试：
+   - 打开 **「暂停拦截」** 开关 → 立即恢复（VPN 仍在跑，但不过滤任何域名）。若这样就正常，说明是被规则误拦截；
+   - 再关掉暂停，把该 App 用到的域名加入 **「域名白名单」**（支持 `*.example.com`），即可精准放行；
+   - 如果加白名单后仍不行，多半是该 App 走了加密 DNS（DoH/DoT），见下方「已知限制」。
 
 ---
 
@@ -138,7 +148,9 @@ certutil -encode release.keystore release.b64 && type release.b64
 - **VPN 前台服务类型**：targetSdk 34 下 `AdBlockVpnService` 已声明 `android:foregroundServiceType="specialUse"`（含对应 `<property>`），否则在 Android 14 上 `startForeground` 会崩溃。如需上架 Google Play，需在该类型下补充 `specialUse` 的说明。
 - **开机自启受系统省电策略影响**：部分国产 ROM 需在「自启动管理」里额外放行本 App，否则开机广播可能不触发。
 - **VPN 常驻略耗电**：后台保持隧道会带来少量电量开销。
-- **未做真机/编译验证**：本仓库代码由 AI 生成，请在 Android Studio 或 GitHub Actions 构建后真机走查一遍。
+- **上游 DNS 必须国内可达**：早期版本把上游写成 `8.8.8.8`，该地址在部分网络下不可达，会导致开启 VPN 后**全部域名解析失败**（表现为 App 打不开、视频加载不出来）。现已改为 `223.5.5.5` / `119.29.29.29` / `114.114.114.114` 多上游回退；`8.8.8.8` 仅作最后兜底。若你自建/替换 DNS，请注意这一点。
+- **DNS 转发必须带超时**：每次转发使用独立 socket 且设置 `soTimeout`。若沿用无限阻塞的 `receive()`，上游丢包时该线程会永久卡死，并发数耗尽后**全网 DNS 瘫痪**。
+- **编译状态**：已通过 GitHub Actions（debug + 签名 release 两条流水线）实际编译验证；真机行为仍建议自行走查一遍。
 
 ---
 
@@ -161,10 +173,10 @@ AdBlocker/
 │   │   ├─ data/BlockListDatabase.kt
 │   │   ├─ BlockListManager.kt    # 黑名单单例缓存
 │   │   └─ util/
-│   │       ├─ DnsUtils.kt        # DNS 包解析 / NXDOMAIN 构造
+│   │       ├─ DnsUtils.kt        # DNS 包解析 / NXDOMAIN / SERVFAIL 构造
 │   │       ├─ HostsLoader.kt     # 内置 hosts 解析
-│   │       ├─ HostsUpdater.kt    # 在线规则订阅源（AdAway/StevenBlack）
-│   │       └─ Prefs.kt           # 本地偏好（开机自启开关）
+│   │       ├─ HostsUpdater.kt    # 在线规则订阅源 + 白名单 + 拦截统计
+│   │       └─ Prefs.kt           # 本地偏好（自启 / 暂停 / 白名单 / 累计拦截数）
 │   └─ res/...
 ├─ gradlew / gradlew.bat / gradle/wrapper/  # 完整 Gradle Wrapper
 └─ README.md

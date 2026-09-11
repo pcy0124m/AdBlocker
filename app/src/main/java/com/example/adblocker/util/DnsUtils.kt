@@ -45,6 +45,21 @@ fun buildNxdomain(query: ByteArray): ByteArray {
     return out
 }
 
+/**
+ * 基于原始查询构造 SERVFAIL 响应（QR=1, RCODE=2）。
+ * 所有上游 DNS 都不可达时返回它，让客户端立刻重试/切换，而不是长时间等待。
+ */
+fun buildServFail(query: ByteArray): ByteArray {
+    val out = query.copyOf()
+    out[2] = ((query[2].toInt() and 0xFF) or 0x80).toByte()
+    // byte3: RA=1, Z=0, RCODE=2 (SERVFAIL) -> 1000 0010 = 0x82
+    out[3] = 0x82.toByte()
+    out[6] = 0; out[7] = 0
+    out[8] = 0; out[9] = 0
+    out[10] = 0; out[11] = 0
+    return out
+}
+
 /** 计算 IPv4 首部校验和（16 位反码求和取反）。len 应为首部长度（通常 20）。 */
 fun calcChecksum(buf: ByteArray, offset: Int, len: Int): Short {
     var sum = 0

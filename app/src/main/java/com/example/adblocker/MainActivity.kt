@@ -29,14 +29,23 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnSms: MaterialButton
     private lateinit var btnAdd: MaterialButton
     private lateinit var btnUpdateRules: MaterialButton
+    private lateinit var btnAddWhitelist: MaterialButton
     private lateinit var switchAutoStart: MaterialSwitch
+    private lateinit var switchPause: MaterialSwitch
     private lateinit var etNumber: TextInputEditText
+    private lateinit var etWhitelist: TextInputEditText
     private lateinit var rvNumbers: RecyclerView
+    private lateinit var rvWhitelist: RecyclerView
     private lateinit var tvEmpty: TextView
+    private lateinit var tvWhitelistEmpty: TextView
     private lateinit var tvStatusAd: TextView
     private lateinit var tvStatusCall: TextView
     private lateinit var tvStatusSms: TextView
+    private lateinit var tvStatsBlocked: TextView
+    private lateinit var tvStatsRules: TextView
+    private lateinit var tvStatsNote: TextView
     private lateinit var adapter: NumberAdapter
+    private lateinit var whitelistAdapter: NumberAdapter
 
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
@@ -52,24 +61,38 @@ class MainActivity : AppCompatActivity() {
         btnSms = findViewById(R.id.btnSms)
         btnAdd = findViewById(R.id.btnAdd)
         btnUpdateRules = findViewById(R.id.btnUpdateRules)
+        btnAddWhitelist = findViewById(R.id.btnAddWhitelist)
         switchAutoStart = findViewById(R.id.switchAutoStart)
+        switchPause = findViewById(R.id.switchPause)
         etNumber = findViewById(R.id.etNumber)
+        etWhitelist = findViewById(R.id.etWhitelist)
         rvNumbers = findViewById(R.id.rvNumbers)
+        rvWhitelist = findViewById(R.id.rvWhitelist)
         tvEmpty = findViewById(R.id.tvEmpty)
+        tvWhitelistEmpty = findViewById(R.id.tvWhitelistEmpty)
         tvStatusAd = findViewById(R.id.tvStatusAd)
         tvStatusCall = findViewById(R.id.tvStatusCall)
         tvStatusSms = findViewById(R.id.tvStatusSms)
+        tvStatsBlocked = findViewById(R.id.tvStatsBlocked)
+        tvStatsRules = findViewById(R.id.tvStatsRules)
+        tvStatsNote = findViewById(R.id.tvStatsNote)
 
         adapter = NumberAdapter { number -> removeNumber(number) }
         rvNumbers.layoutManager = LinearLayoutManager(this)
         rvNumbers.adapter = adapter
         refreshList()
 
+        whitelistAdapter = NumberAdapter { domain -> removeWhitelist(domain) }
+        rvWhitelist.layoutManager = LinearLayoutManager(this)
+        rvWhitelist.adapter = whitelistAdapter
+        refreshWhitelist()
+
         btnVpn.setOnClickListener { toggleVpn() }
         btnCall.setOnClickListener { requestCallScreening() }
         btnSms.setOnClickListener { requestSmsRole() }
         btnAdd.setOnClickListener { addNumber() }
         btnUpdateRules.setOnClickListener { updateRules() }
+        btnAddWhitelist.setOnClickListener { addWhitelist() }
 
         // 先设置初始状态再挂监听，避免初始化时误触发 Toast
         switchAutoStart.isChecked = Prefs.isAutoStartVpn(this)
@@ -81,6 +104,16 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
+        switchPause.isChecked = Prefs.isBlockingPaused(this)
+        switchPause.setOnCheckedChangeListener { _, checked ->
+            Prefs.setBlockingPaused(this, checked)
+            toast(
+                if (checked) getString(R.string.pause_enabled)
+                else getString(R.string.pause_disabled)
+            )
+            refreshStats()
+        }
+
         updateVpnButton()
     }
 
@@ -88,6 +121,12 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         // 从系统设置页返回时，角色状态可能已变化，这里刷新一次
         updateVpnButton()
+    }
+
+    override fun onPause() {
+        // 把本会话拦截数结算进累计值，保证切到后台后统计不丢
+        HostsUpdater.flushSession(this)
+        super.onPause()
     }
 
     // ---------- 运行状态总览 ----------
@@ -107,6 +146,17 @@ class MainActivity : AppCompatActivity() {
         tv.setText(if (on) R.string.status_on else R.string.status_off)
         tv.setTextColor(
             ContextCompat.getColor(this, if (on) R.color.status_on else R.color.status_off)
+        )
+    }
+
+    // ---------- 拦截统计 ----------
+    private fun refreshStats() {
+        val total = Prefs.totalBlocked(this) + HostsUpdater.sessionBlockedCount()
+        tvStatsBlocked.text = getString(R.string.stats_blocked_value, total)
+        tvStatsRules.text = getString(R.string.stats_rules_value, HostsUpdater.size())
+        tvStatsNote.setText(
+            if (Prefs.isBlockingPaused(this)) R.string.stats_paused
+            else R.string.stats_user_hint
         )
     }
 
@@ -136,6 +186,7 @@ class MainActivity : AppCompatActivity() {
             if (AdBlockVpnService.running) R.string.stop_vpn else R.string.start_vpn
         )
         refreshStatus()
+        refreshStats()
     }
 
     // ---------- 广告规则在线更新 ----------
@@ -147,6 +198,7 @@ class MainActivity : AppCompatActivity() {
                 val n = HostsUpdater.size()
                 withContext(Dispatchers.Main) {
                     toast(getString(R.string.rules_updated, n))
+                    refreshStats()
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
@@ -226,6 +278,35 @@ class MainActivity : AppCompatActivity() {
         val items = BlockListManager.getAll()
         adapter.submit(items)
         tvEmpty.visibility = if (items.isEmpty()) View.VISIBLE else View.GONE
+    }
+
+    // ---------- 域名白名单管理 ----------
+    private fun addWhitelist() {
+        val raw = etWhitelist.text.toString().trim()
+        if (raw.isEmpty()) {
+            toast(getString(R.string.whitelist_invalid))
+            return
+        }
+        if (HostsUpdater.addWhitelist(this, raw)) {
+            etWhitelist.setText("")
+            toast(getString(R.string.whitelist_added, raw))
+            refreshWhitelist()
+            refreshStats()
+        } else {
+            toast(getString(R.string.whitelist_invalid))
+        }
+    }
+
+    private fun removeWhitelist(domain: String) {
+        HostsUpdater.removeWhitelist(this, domain)
+        refreshWhitelist()
+        refreshStats()
+    }
+
+    private fun refreshWhitelist() {
+        val items = HostsUpdater.whiteList()
+        whitelistAdapter.submit(items)
+        tvWhitelistEmpty.visibility = if (items.isEmpty()) View.VISIBLE else View.GONE
     }
 
     // ---------- 回调 ----------
