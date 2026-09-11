@@ -16,6 +16,16 @@ android {
         versionName = "1.0"
     }
 
+    signingConfigs {
+        create("release") {
+            // 签名信息从 CI Secrets 注入的环境变量读取；本地不带 env 时不影响 debug 构建
+            storeFile = file(System.getenv("KEYSTORE_PATH") ?: "app/release.keystore")
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
+            keyAlias = System.getenv("KEY_ALIAS") ?: ""
+            keyPassword = System.getenv("KEY_PASSWORD") ?: ""
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -23,6 +33,10 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // 仅当 CI 注入了 KEYSTORE_PATH 时才对 release 包签名；本地无 keystore 时产出未签名包
+            if (System.getenv("KEYSTORE_PATH") != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
