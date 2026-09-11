@@ -55,6 +55,74 @@
             </LinearLayout>
         </LinearLayout>
 
+        <!-- ========== 崩溃日志（仅在有崩溃记录时显示） ========== -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/cardCrash"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:visibility="gone"
+            app:cardBackgroundColor="@color/surface"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="1dp"
+            app:strokeColor="@color/status_off"
+            app:strokeWidth="1dp"
+            tools:visibility="visible">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/crash_title"
+                    android:textColor="@color/status_off"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:lineSpacingExtra="2dp"
+                    android:text="@string/crash_desc"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/tvCrashLog"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:background="@color/background"
+                    android:fontFamily="monospace"
+                    android:maxLines="10"
+                    android:padding="10dp"
+                    android:textColor="@color/text_primary"
+                    android:textIsSelectable="true"
+                    android:textSize="11sp"
+                    tools:text="java.lang.SecurityException: Starting FGS with type specialUse ..." />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnCopyCrash"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/crash_copy" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnClearCrash"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/crash_clear" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- ========== 运行状态总览 ========== -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"

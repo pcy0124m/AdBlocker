@@ -52,6 +52,15 @@ class ComposeSmsActivity : AppCompatActivity() {
 
     /** 其它 App 通过隐式 intent 传进来的号码 / 正文，预填到输入框。 */
     private fun parseIncomingIntent(intent: android.content.Intent?) {
+        // 外部 Intent 的数据不可信（广告里的 sms: URI 格式千奇百怪），
+        // 解析失败不能让整个发送界面崩溃。
+        try {
+            parseIncomingIntentInner(intent)
+        } catch (_: Exception) {
+        }
+    }
+
+    private fun parseIncomingIntentInner(intent: android.content.Intent?) {
         val data: Uri? = intent?.data
         if (data != null) {
             // smsto:10086  /  sms:10086?body=xxx

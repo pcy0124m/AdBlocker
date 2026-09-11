@@ -8,6 +8,8 @@ import android.content.pm.ServiceInfo
 import android.net.VpnService
 import android.os.Build
 import android.os.ParcelFileDescriptor
+import android.util.Log
+import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import com.example.adblocker.util.HostsUpdater
 import com.example.adblocker.util.Prefs
@@ -40,6 +42,7 @@ import java.util.concurrent.Executors
  *    也避免上游无响应时线程被 receive() 永久阻塞（会造成全网 DNS 瘫痪）。
  *  - 转发在固定线程池中并发执行，慢查询不会阻塞主循环。
  *  - 全部上游均不可达时返回 SERVFAIL，让客户端快速重试而非干等。
+ *  - 启动链路全程兜底：服务与界面同进程，未捕获异常会表现为「整个 App 闪退」。
  *
  * 逃生通道：
  *  - 界面上的「暂停拦截」开关：VPN 仍运行，但所有 DNS 直接转发、不过滤。
@@ -54,6 +57,8 @@ class AdBlockVpnService : VpnService() {
     private var fd: ParcelFileDescriptor? = null
 
     companion object {
+        private const val TAG = "AdBlockVpnService"
+
         const val NOTIF_ID = 1
 
         /**
@@ -83,24 +88,65 @@ class AdBlockVpnService : VpnService() {
 
     override fun onCreate() {
         super.onCreate()
-        HostsUpdater.loadLocal(this)
+        try {
+            HostsUpdater.loadLocal(this)
+        } catch (_: Exception) {
+            // 规则加载失败不应阻断服务启动；HostsUpdater 仍可后续在线更新补齐。
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val notification = buildNotification()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            startForeground(
-                NOTIF_ID,
-                notification,
-                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
-            )
-        } else {
-            startForeground(NOTIF_ID, notification)
+        // 服务与界面同进程：这里任何未捕获异常都会表现为「整个 App 闪退」。
+        // 因此启动链路整体兜底，失败时提示用户并停止服务，而不是崩溃。
+        try {
+            startForegroundCompat(buildNotification())
+        } catch (e: Exception) {
+            Log.e(TAG, "前台服务启动失败", e)
+            try {
+                Toast.makeText(
+                    this,
+                    getString(R.string.vpn_start_failed),
+                    Toast.LENGTH_LONG
+                ).show()
+            } catch (_: Exception) {
+            }
+            stopSelf()
+            return START_NOT_STICKY
         }
+
         running = true
         worker = Thread(::vpnLoop, "AdBlockVpnLoop")
         worker?.start()
         return START_STICKY
+    }
+
+    /**
+     * 启动前台服务（跨版本兼容）。
+     *
+     * 兼容性要点 —— 这里曾经导致「点『启动广告拦截』直接闪退」：
+     *  1) Android 14 (API 34) 起，声明了 foregroundServiceType="specialUse" 的服务
+     *     必须同时申请 FOREGROUND_SERVICE_SPECIAL_USE 权限（见 AndroidManifest），
+     *     否则 startForeground() 抛 SecurityException；
+     *  2) FOREGROUND_SERVICE_TYPE_SPECIAL_USE 是 API 34 才引入的类型常量，
+     *     在 Android 10~13 上传入会与清单声明的类型集合不匹配，
+     *     部分 ROM（ColorOS / MIUI 等）会直接抛 IllegalArgumentException。
+     *     因此只在 API 34+ 传类型，其余版本一律走不带类型的旧接口。
+     */
+    private fun startForegroundCompat(notification: Notification) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            try {
+                startForeground(
+                    NOTIF_ID,
+                    notification,
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+                )
+                return
+            } catch (e: Exception) {
+                // 个别 ROM 仍可能拒绝带类型的调用，降级为旧接口再试一次
+                Log.w(TAG, "带类型的前台服务启动失败，降级为不带类型重试", e)
+            }
+        }
+        startForeground(NOTIF_ID, notification)
     }
 
     override fun onDestroy() {
@@ -180,40 +226,45 @@ class AdBlockVpnService : VpnService() {
 
     /** 解析单个隧道内数据包：仅处理发往 10.0.0.1:53 的 IPv4/UDP/DNS 查询。 */
     private fun handlePacket(packet: ByteArray, out: FileOutputStream) {
-        val arr = packet
-        if (arr.size < 28) return
-        // IPv4?
-        if ((arr[0].toInt() and 0xF0) != 0x40) return
-        val ipHdrLen = (arr[0].toInt() and 0x0F) * 4
-        if (ipHdrLen < 20 || ipHdrLen + 8 > arr.size) return
-        // UDP?
-        if ((arr[9].toInt() and 0xFF) != 17) return
+        // 单个畸形包不能拖垮工作线程（否则线程池会被逐渐耗尽）
+        try {
+            val arr = packet
+            if (arr.size < 28) return
+            // IPv4?
+            if ((arr[0].toInt() and 0xF0) != 0x40) return
+            val ipHdrLen = (arr[0].toInt() and 0x0F) * 4
+            if (ipHdrLen < 20 || ipHdrLen + 8 > arr.size) return
+            // UDP?
+            if ((arr[9].toInt() and 0xFF) != 17) return
 
-        val dstPort = ((arr[ipHdrLen + 2].toInt() and 0xFF) shl 8) or
-            (arr[ipHdrLen + 3].toInt() and 0xFF)
-        if (dstPort != 53) return
-        val srcPort = ((arr[ipHdrLen].toInt() and 0xFF) shl 8) or
-            (arr[ipHdrLen + 1].toInt() and 0xFF)
+            val dstPort = ((arr[ipHdrLen + 2].toInt() and 0xFF) shl 8) or
+                (arr[ipHdrLen + 3].toInt() and 0xFF)
+            if (dstPort != 53) return
+            val srcPort = ((arr[ipHdrLen].toInt() and 0xFF) shl 8) or
+                (arr[ipHdrLen + 1].toInt() and 0xFF)
 
-        val udpLen = ((arr[ipHdrLen + 4].toInt() and 0xFF) shl 8) or
-            (arr[ipHdrLen + 5].toInt() and 0xFF)
-        if (udpLen <= 8) return
-        val dnsStart = ipHdrLen + 8
-        val dnsLen = udpLen - 8
-        if (dnsStart + dnsLen > arr.size) return
+            val udpLen = ((arr[ipHdrLen + 4].toInt() and 0xFF) shl 8) or
+                (arr[ipHdrLen + 5].toInt() and 0xFF)
+            if (udpLen <= 8) return
+            val dnsStart = ipHdrLen + 8
+            val dnsLen = udpLen - 8
+            if (dnsStart + dnsLen > arr.size) return
 
-        val dns = arr.copyOfRange(dnsStart, dnsStart + dnsLen)
-        val domain = extractQueryName(dns) ?: return
+            val dns = arr.copyOfRange(dnsStart, dnsStart + dnsLen)
+            val domain = extractQueryName(dns) ?: return
 
-        val paused = Prefs.isBlockingPaused(this)
-        val payload: ByteArray = if (!paused && HostsUpdater.isBlocked(domain)) {
-            HostsUpdater.recordBlocked(domain)
-            buildNxdomain(dns)
-        } else {
-            forward(dns) ?: buildServFail(dns)
+            val paused = Prefs.isBlockingPaused(this)
+            val payload: ByteArray = if (!paused && HostsUpdater.isBlocked(domain)) {
+                HostsUpdater.recordBlocked(domain)
+                buildNxdomain(dns)
+            } else {
+                forward(dns) ?: buildServFail(dns)
+            }
+
+            writeResponse(out, arr, ipHdrLen, srcPort, dstPort, payload)
+        } catch (e: Exception) {
+            Log.w(TAG, "处理隧道数据包失败，已跳过", e)
         }
-
-        writeResponse(out, arr, ipHdrLen, srcPort, dstPort, payload)
     }
 
     /**

@@ -93,4 +93,14 @@
     <string name="compose_empty_number">请输入接收号码</string>
     <string name="compose_empty_body">请输入短信内容</string>
     <string name="compose_no_permission">缺少发送短信权限，请在系统设置中授权</string>
+
+    <!-- VPN 启动失败（不让它变成闪退） -->
+    <string name="vpn_start_failed">广告拦截启动失败。请到系统设置里给本应用开启「自启动 / 后台运行」权限后重试。</string>
+
+    <!-- 崩溃日志（出现闪退时可在界面顶部看到并复制反馈） -->
+    <string name="crash_title">上次发生异常（可复制反馈）</string>
+    <string name="crash_desc">应用最近崩溃过一次，下面是堆栈信息。复制后发给开发者可快速定位；问题解决后可点「清空」。</string>
+    <string name="crash_copy">复制崩溃日志</string>
+    <string name="crash_clear">清空</string>
+    <string name="crash_copied">崩溃日志已复制到剪贴板</string>
 </resources>

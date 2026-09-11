@@ -7,6 +7,13 @@
 
     <!-- 前台服务（VPN 常驻通知） -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!--
+      Android 14 (API 34) 起：使用了 foregroundServiceType="specialUse" 的前台服务
+      必须同时声明本权限，否则 startForeground() 会抛 SecurityException。
+      本应用要求 targetSdk 34，因此缺这条权限会导致
+      「点击『启动广告拦截』→ VPN 服务启动失败 → 整个 App 闪退」。
+    -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- 短信拦截所需权限 -->
@@ -24,6 +31,7 @@
         android:required="false" />
 
     <application
+        android:name=".App"
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:roundIcon="@drawable/ic_launcher"
@@ -41,9 +49,10 @@
             <intent-filter>
                 <action android:name="android.net.VpnService" />
             </intent-filter>
+            <!-- specialUse 类型要求在 <service> 内声明具体用途（Play 审核会查看） -->
             <property
-                android:name="android.foregroundServiceType"
-                android:value="specialUse" />
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="dns_filtering_vpn" />
         </service>
 
         <!-- 骚扰电话拦截：CallScreeningService -->

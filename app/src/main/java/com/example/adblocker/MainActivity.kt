@@ -2,6 +2,8 @@ package com.example.adblocker
 
 import android.Manifest
 import android.app.role.RoleManager
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.VpnService
@@ -17,9 +19,11 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.textfield.TextInputEditText
+import com.example.adblocker.util.CrashHandler
 import com.example.adblocker.util.HostsUpdater
 import com.example.adblocker.util.Prefs
 import kotlinx.coroutines.*
@@ -46,6 +50,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvStatsBlocked: TextView
     private lateinit var tvStatsRules: TextView
     private lateinit var tvStatsNote: TextView
+    private lateinit var cardCrash: MaterialCardView
+    private lateinit var tvCrashLog: TextView
     private lateinit var adapter: NumberAdapter
     private lateinit var whitelistAdapter: NumberAdapter
 
@@ -78,6 +84,14 @@ class MainActivity : AppCompatActivity() {
         tvStatsBlocked = findViewById(R.id.tvStatsBlocked)
         tvStatsRules = findViewById(R.id.tvStatsRules)
         tvStatsNote = findViewById(R.id.tvStatsNote)
+        cardCrash = findViewById(R.id.cardCrash)
+        tvCrashLog = findViewById(R.id.tvCrashLog)
+
+        findViewById<MaterialButton>(R.id.btnCopyCrash).setOnClickListener { copyCrashLog() }
+        findViewById<MaterialButton>(R.id.btnClearCrash).setOnClickListener {
+            CrashHandler.clear(this)
+            refreshCrashCard()
+        }
 
         adapter = NumberAdapter { number -> removeNumber(number) }
         rvNumbers.layoutManager = LinearLayoutManager(this)
@@ -123,6 +137,7 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         // 从系统设置页返回时，角色状态可能已变化，这里刷新一次
         updateVpnButton()
+        refreshCrashCard()
     }
 
     override fun onPause() {
@@ -191,8 +206,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startVpn() {
-        // ContextCompat 在 API < 26 上回退到 startService，避免 NoSuchMethodError
-        ContextCompat.startForegroundService(this, Intent(this, AdBlockVpnService::class.java))
+        // 部分国产 ROM（ColorOS / MIUI 等）会限制后台拉起前台服务，抛出的
+        // ForegroundServiceStartNotAllowedException / SecurityException
+        // 若不捕获，就会表现为「点一下按钮就闪退」。
+        try {
+            // ContextCompat 在 API < 26 上回退到 startService，避免 NoSuchMethodError
+            ContextCompat.startForegroundService(this, Intent(this, AdBlockVpnService::class.java))
+        } catch (_: Exception) {
+            toast(getString(R.string.vpn_start_failed))
+        }
         updateVpnButton()
     }
 
@@ -422,6 +444,28 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         scope.cancel()
         super.onDestroy()
+    }
+
+    // ---------- 崩溃日志 ----------
+    private fun refreshCrashCard() {
+        val log = CrashHandler.read(this)
+        if (log.isNullOrBlank()) {
+            cardCrash.visibility = View.GONE
+        } else {
+            cardCrash.visibility = View.VISIBLE
+            tvCrashLog.text = log
+        }
+    }
+
+    private fun copyCrashLog() {
+        val log = CrashHandler.read(this) ?: return
+        try {
+            val cm = getSystemService(ClipboardManager::class.java)
+            cm?.setPrimaryClip(ClipData.newPlainText("adblocker-crash", log))
+            toast(getString(R.string.crash_copied))
+        } catch (_: Exception) {
+            // 极少数 ROM 限制剪贴板访问，忽略即可
+        }
     }
 
     private fun toast(msg: String) {

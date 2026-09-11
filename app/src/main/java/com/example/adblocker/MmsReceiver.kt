@@ -3,7 +3,6 @@ package com.example.adblocker
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.util.Log
 
 /**
@@ -19,13 +18,16 @@ import android.util.Log
  *   收到的彩信将不会被保存，也不会显示（短信不受影响）。
  *   当前国内彩信已基本停用，属于可接受的取舍；如需完整彩信支持，
  *   请改用专门的短信应用。
+ *
+ * 健壮性：广播接收器崩溃会直接表现为「应用已停止运行」，因此这里只打日志，且全程兜底。
  */
 class MmsReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            // 打印一条日志便于排查，不做任何处理
+        try {
             Log.i(TAG, "收到 WAP_PUSH（彩信）广播，本应用不处理彩信，已忽略。")
+        } catch (_: Exception) {
+            // 任何异常都不应影响系统彩信流程
         }
     }
 
