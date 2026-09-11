@@ -89,7 +89,7 @@ object HostsUpdater {
 
     fun recentBlocked(): List<String> = recent.toList()
 
-    fun size(): Int = hosts.size()
+    fun size(): Int = hosts.size
 
     /** 把本会话计数结算进累计值（原子取走，避免重复累计）。 */
     fun flushSession(context: Context) {
