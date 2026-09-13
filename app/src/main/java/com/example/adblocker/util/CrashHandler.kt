@@ -63,6 +63,20 @@ object CrashHandler {
         }
     }
 
+    /**
+     * 主动记录一条异常（供已知敏感路径在捕获后调用）。
+     *
+     * 例：VPN 隧道在子线程运行，原先的未捕获异常会触发全局处理器并「整个 App 闪退」。
+     *     改为在敏感路径捕获后调用本方法，主界面的「崩溃日志」卡片仍能呈现根因，
+     *     但不再闪退，便于用户复制反馈。
+     */
+    fun log(context: Context, throwable: Throwable) {
+        try {
+            append(context.applicationContext, Thread.currentThread(), throwable)
+        } catch (_: Throwable) {
+        }
+    }
+
     private fun append(context: Context, thread: Thread, throwable: Throwable) {
         val time = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
         val sw = StringWriter()

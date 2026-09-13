@@ -7,6 +7,8 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.net.VpnService
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.ParcelFileDescriptor
 import android.util.Log
 import android.widget.Toast
@@ -17,6 +19,7 @@ import com.example.adblocker.util.buildNxdomain
 import com.example.adblocker.util.buildServFail
 import com.example.adblocker.util.calcChecksum
 import com.example.adblocker.util.extractQueryName
+import com.example.adblocker.util.CrashHandler
 import com.example.adblocker.util.DnsCache
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -103,6 +106,7 @@ class AdBlockVpnService : VpnService() {
             startForegroundCompat(buildNotification())
         } catch (e: Exception) {
             Log.e(TAG, "前台服务启动失败", e)
+            CrashHandler.log(this, e)
             try {
                 Toast.makeText(
                     this,
@@ -184,44 +188,78 @@ class AdBlockVpnService : VpnService() {
     }
 
     private fun vpnLoop() {
-        val builder = Builder()
-            .setSession(getString(R.string.app_name))
-            .addAddress("10.0.0.2", 24)
-            .addDnsServer("10.0.0.1")
-            .addRoute("10.0.0.1", 32)
-            .addDisallowedApplication(packageName) // 自身流量不走隧道，便于直连上游 DNS
-
         try {
-            fd = builder.establish() ?: return
-        } catch (_: Exception) {
-            return
-        }
+            val builder = Builder()
+                .setSession(getString(R.string.app_name))
+                .addAddress("10.0.0.2", 24)
+                .addDnsServer("10.0.0.1")
+                .addRoute("10.0.0.1", 32)
+                .addDisallowedApplication(packageName) // 自身流量不走隧道，便于直连上游 DNS
 
-        val input = FileInputStream(fd!!.fileDescriptor)
-        val out = FileOutputStream(fd!!.fileDescriptor)
-        val pool = Executors.newFixedThreadPool(WORKER_THREADS)
-        val readBuf = ByteArray(32767)
-
-        try {
-            while (running) {
-                val len = input.read(readBuf)
-                if (len < 0) break
-                if (len == 0) continue
-                // 拷贝出恰好长度的包，交给线程池并发处理（主循环立即继续读下一包）
-                val packet = readBuf.copyOf(len)
-                try {
-                    pool.execute { handlePacket(packet, out) }
-                } catch (_: Exception) {
-                    // 线程池已关闭，退出循环
-                    break
-                }
+            val established = try {
+                builder.establish()
+            } catch (e: Exception) {
+                // establish 抛异常（部分 ROM 会拒绝 / 权限状态异常）
+                Log.e(TAG, "VPN establish 失败", e)
+                CrashHandler.log(this, e)
+                null
             }
-        } catch (_: Exception) {
-            // 隧道关闭或读取被中断时退出
+            if (established == null) {
+                Log.e(TAG, "VPN 隧道建立失败：establish 返回 null（权限未授予或系统拒绝）")
+                showStartFailed()
+                return
+            }
+            fd = established
+
+            val input = FileInputStream(fd!!.fileDescriptor)
+            val out = FileOutputStream(fd!!.fileDescriptor)
+            val pool = Executors.newFixedThreadPool(WORKER_THREADS)
+            val readBuf = ByteArray(32767)
+
+            try {
+                while (running) {
+                    val len = input.read(readBuf)
+                    if (len < 0) break
+                    if (len == 0) continue
+                    // 拷贝出恰好长度的包，交给线程池并发处理（主循环立即继续读下一包）
+                    val packet = readBuf.copyOf(len)
+                    try {
+                        pool.execute { handlePacket(packet, out) }
+                    } catch (_: Exception) {
+                        // 线程池已关闭，退出循环
+                        break
+                    }
+                }
+            } catch (_: Exception) {
+                // 隧道关闭或读取被中断时退出
+            } finally {
+                pool.shutdownNow()
+                try { input.close() } catch (_: Exception) {}
+                try { out.close() } catch (_: Exception) {}
+            }
+        } catch (e: Exception) {
+            // 隧道建立 / 运行中的未捕获异常：记录到崩溃日志卡片并提示，而非整 App 闪退
+            Log.e(TAG, "VPN 隧道运行异常", e)
+            CrashHandler.log(this, e)
+            showStartFailed()
         } finally {
-            pool.shutdownNow()
-            try { input.close() } catch (_: Exception) {}
-            try { out.close() } catch (_: Exception) {}
+            running = false
+            try { fd?.close() } catch (_: Exception) {}
+            stopSelf()
+        }
+    }
+
+    /** 在主线程弹出「启动失败」提示（子线程不可直接 Toast）。 */
+    private fun showStartFailed() {
+        Handler(Looper.getMainLooper()).post {
+            try {
+                Toast.makeText(
+                    this,
+                    getString(R.string.vpn_start_failed),
+                    Toast.LENGTH_LONG
+                ).show()
+            } catch (_: Exception) {
+            }
         }
     }
 
