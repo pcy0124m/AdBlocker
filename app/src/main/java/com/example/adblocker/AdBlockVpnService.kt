@@ -106,7 +106,9 @@ class AdBlockVpnService : VpnService() {
             startForegroundCompat(buildNotification())
         } catch (e: Exception) {
             Log.e(TAG, "前台服务启动失败", e)
+            val reason = "VPN 启动失败（前台服务）：${e.javaClass.simpleName}：${e.message ?: "未知错误"}"
             CrashHandler.log(this, e)
+            Prefs.setVpnStartFailed(this, reason)
             try {
                 Toast.makeText(
                     this,
@@ -151,7 +153,14 @@ class AdBlockVpnService : VpnService() {
                 Log.w(TAG, "带类型的前台服务启动失败，降级为不带类型重试", e)
             }
         }
-        startForeground(NOTIF_ID, notification)
+        try {
+            // 降级分支同样兜底：部分 Android 14 ROM 要求必须带类型，
+            // 不带类型反而抛 IllegalArgumentException，需冒泡给 onStartCommand 统一处理。
+            startForeground(NOTIF_ID, notification)
+        } catch (e: Exception) {
+            Log.w(TAG, "不带类型的前台服务启动也失败", e)
+            throw e
+        }
     }
 
     override fun onDestroy() {
@@ -206,6 +215,11 @@ class AdBlockVpnService : VpnService() {
             }
             if (established == null) {
                 Log.e(TAG, "VPN 隧道建立失败：establish 返回 null（权限未授予或系统拒绝）")
+                Prefs.setVpnStartFailed(
+                    this,
+                    "VPN 隧道建立失败：系统未授予 VPN 权限或被拒绝（establish 返回 null）。" +
+                        "请先在系统弹窗中允许本应用建立 VPN 连接。"
+                )
                 showStartFailed()
                 return
             }

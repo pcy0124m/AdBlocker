@@ -167,6 +167,20 @@ class MainActivity : AppCompatActivity() {
         refreshCrashCard()
         // 拦截记录由服务和广播接收器在后台写入，每次回到前台刷新一下
         refreshLogs(currentLogFilter())
+        // 上次 VPN 启动失败的原因：弹出明确对话框，确保用户一定能看到根因
+        // （否则只藏在顶部日志卡里，容易被忽略，导致反复「点启动→失败」却不知为何）
+        checkVpnStartFailed()
+    }
+
+    /** 若最近一次 VPN 启动失败，弹窗告知原因与建议，并清除标记。 */
+    private fun checkVpnStartFailed() {
+        val reason = Prefs.getVpnStartFailed(this) ?: return
+        Prefs.clearVpnStartFailed(this)
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.vpn_start_failed_title)
+            .setMessage(reason)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
     }
 
     override fun onPause() {

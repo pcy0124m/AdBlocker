@@ -17,6 +17,7 @@ object Prefs {
     private const val KEY_PAUSE_BLOCKING = "pause_blocking"
     private const val KEY_WHITELIST = "whitelist"
     private const val KEY_TOTAL_BLOCKED = "total_blocked"
+    private const val KEY_VPN_START_FAILED = "vpn_start_failed"
 
     private fun sp(context: Context) =
         context.getSharedPreferences(FILE, Context.MODE_PRIVATE)
@@ -60,5 +61,24 @@ object Prefs {
         prefs.edit()
             .putLong(KEY_TOTAL_BLOCKED, prefs.getLong(KEY_TOTAL_BLOCKED, 0L) + delta)
             .apply()
+    }
+
+    // ---------- 最近一次 VPN 启动失败原因 ----------
+    /**
+     * 服务在后台尝试启动却失败时，把「原因」存下来。
+     * 主界面 onResume 时读取并弹对话框，确保用户一定能看到根因
+     * （否则崩溃/失败只藏在顶部日志卡里，容易被忽略）。
+     */
+    fun setVpnStartFailed(context: Context, reason: String) {
+        sp(context).edit().putString(KEY_VPN_START_FAILED, reason).apply()
+    }
+
+    fun getVpnStartFailed(context: Context): String? {
+        val r = sp(context).getString(KEY_VPN_START_FAILED, null)
+        return if (r.isNullOrBlank()) null else r
+    }
+
+    fun clearVpnStartFailed(context: Context) {
+        sp(context).edit().remove(KEY_VPN_START_FAILED).apply()
     }
 }

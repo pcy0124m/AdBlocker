@@ -12,8 +12,11 @@ android {
         applicationId = "com.example.adblocker"
         minSdk = 23
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        // 重要：每次发版必须递增 versionCode，否则覆盖安装会被 Android 拒绝
+        // （versionCode 不升，adb install -r / 安装器会报 VERSION_DOWNGRADE 而失败），
+        // 旧版会一直留在用户手机上 —— 这正是「v0.1.10 已修但用户仍在用闪退版」的根因。
+        versionCode = 11
+        versionName = "0.1.11"
     }
 
     signingConfigs {
