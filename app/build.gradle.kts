@@ -4,6 +4,11 @@ plugins {
     kotlin("kapt")
 }
 
+// 版本号：CI 通过环境变量注入，保证 versionCode 严格递增且与 Release tag 对齐。
+// 本地构建用下面的默认值（改动默认值时须递增，否则覆盖安装会被系统拒绝）。
+val ciVersionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 12
+val ciVersionName = System.getenv("VERSION_NAME")?.takeIf { it.isNotBlank() } ?: "0.1.12"
+
 android {
     namespace = "com.example.adblocker"
     compileSdk = 34
@@ -13,10 +18,12 @@ android {
         minSdk = 23
         targetSdk = 34
         // 重要：每次发版必须递增 versionCode，否则覆盖安装会被 Android 拒绝
-        // （versionCode 不升，adb install -r / 安装器会报 VERSION_DOWNGRADE 而失败），
+        // （versionCode 不升，adb install -r / 安装器会报 VERSION_DOWNGRADE 或同版本无法覆盖），
         // 旧版会一直留在用户手机上 —— 这正是「v0.1.10 已修但用户仍在用闪退版」的根因。
-        versionCode = 11
-        versionName = "0.1.11"
+        // 现由 CI 注入 VERSION_CODE / VERSION_NAME（见 .github/workflows/release.yml），
+        // 与 Release tag 保持同一来源，避免「tag 涨了、versionCode 没涨」再次发生。
+        versionCode = ciVersionCode
+        versionName = ciVersionName
     }
 
     signingConfigs {

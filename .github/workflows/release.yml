@@ -49,8 +49,28 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      # 统一计算版本号：tag / versionName / versionCode 三者同源，杜绝「tag 涨了、versionCode 没涨」
+      # 导致覆盖安装被系统拒绝的问题。手动触发时用 release workflow 自身的运行序号（单调递增）。
+      - name: Compute version
+        id: ver
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            VN="${GITHUB_REF_NAME#v}"
+          else
+            VN="0.1.${GITHUB_RUN_NUMBER}"
+          fi
+          # versionCode：主*10000 + 次*100 + 修订（保证单调递增）
+          VC=$(echo "$VN" | awk -F. '{printf "%d", $1*10000 + $2*100 + $3}')
+          echo "version_name=$VN" >> "$GITHUB_OUTPUT"
+          echo "version_code=$VC"  >> "$GITHUB_OUTPUT"
+          echo "tag=v$VN"          >> "$GITHUB_OUTPUT"
+          echo "本次版本：name=$VN code=$VC tag=v$VN"
+
       # 使用仓库自带的 Gradle Wrapper（8.6），不再手动 curl 安装 Gradle。
       - name: Build signed release APK + AAB
+        env:
+          VERSION_CODE: ${{ steps.ver.outputs.version_code }}
+          VERSION_NAME: ${{ steps.ver.outputs.version_name }}
         run: ./gradlew assembleRelease bundleRelease --no-daemon
 
       - name: Upload release APK
@@ -80,11 +100,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
-          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
-            TAG="$GITHUB_REF_NAME"
-          else
-            TAG="v0.1.${GITHUB_RUN_NUMBER}"
-          fi
+          TAG="${{ steps.ver.outputs.tag }}"
           echo "Publishing release with tag: $TAG"
 
           cat > release-notes.md <<EOF
@@ -92,6 +108,7 @@ jobs:
 
           - 构建来源：run #${GITHUB_RUN_NUMBER}
           - 提交：\`${GITHUB_SHA}\`
+          - 版本：\`${{ steps.ver.outputs.version_name }}\`（versionCode \`${{ steps.ver.outputs.version_code }}\`）
           - 签名：由 CI Secrets 中的 keystore 完成
 
           | 文件 | 用途 |
