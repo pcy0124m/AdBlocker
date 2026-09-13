@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res/auto"
+    xmlns:material="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -16,7 +16,6 @@
         android:paddingEnd="16dp"
         android:paddingBottom="24dp">
 
-        <!-- 页面标题 -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -25,17 +24,17 @@
             android:textSize="22sp"
             android:textStyle="bold" />
 
-        <!-- ========== 1. 运行内存 ========== -->
+        <!-- 1. 运行内存 -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:layout_marginBottom="12dp"
-            app:cardBackgroundColor="@color/surface"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="1dp"
-            app:strokeColor="@color/divider"
-            app:strokeWidth="1dp">
+            material:cardBackgroundColor="@color/surface"
+            material:cardCornerRadius="16dp"
+            material:cardElevation="1dp"
+            material:strokeColor="@color/divider"
+            material:strokeWidth="1dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -114,7 +113,6 @@
                         tools:text="14%" />
                 </LinearLayout>
 
-                <!-- 内存使用率进度条 -->
                 <ProgressBar
                     android:id="@+id/progressMemory"
                     style="?android:attr/progressBarStyleHorizontal"
@@ -132,20 +130,20 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
                     android:text="@string/opt_boost_btn"
-                    app:iconGravity="textStart" />
+                    material:iconGravity="textStart" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- ========== 2. 存储清理 ========== -->
+        <!-- 2. 存储清理 -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
-            app:cardBackgroundColor="@color/surface"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="1dp"
-            app:strokeColor="@color/divider"
-            app:strokeWidth="1dp">
+            material:cardBackgroundColor="@color/surface"
+            material:cardCornerRadius="16dp"
+            material:cardElevation="1dp"
+            material:strokeColor="@color/divider"
+            material:strokeWidth="1dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -189,7 +187,6 @@
                         android:textSize="12sp" />
                 </LinearLayout>
 
-                <!-- 本应用缓存 -->
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -207,7 +204,6 @@
                     android:textSize="14sp"
                     tools:text="8.0 KB" />
 
-                <!-- 操作按钮行 -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -233,15 +229,15 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- ========== 3. 操作日志 ========== -->
+        <!-- 3. 操作日志 -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardBackgroundColor="@color/surface"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="1dp"
-            app:strokeColor="@color/divider"
-            app:strokeWidth="1dp">
+            material:cardBackgroundColor="@color/surface"
+            material:cardCornerRadius="16dp"
+            material:cardElevation="1dp"
+            material:strokeColor="@color/divider"
+            material:strokeWidth="1dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -271,7 +267,7 @@
                         android:lineSpacingExtra="2dp"
                         android:textColor="@color/text_secondary"
                         android:textSize="11sp"
-                        tools:text="[HH:MM:SS] ⚡一键加速完成：尝试结束 0 个后台进程（受系统限制），并清理本应用缓存" />
+                        tools:text="[HH:MM:SS] 一键加速完成" />
                 </ScrollView>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
