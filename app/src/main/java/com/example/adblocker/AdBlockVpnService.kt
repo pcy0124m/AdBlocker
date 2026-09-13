@@ -258,7 +258,20 @@ class AdBlockVpnService : VpnService() {
                 HostsUpdater.recordBlocked(domain)
                 buildNxdomain(dns)
             } else {
-                forward(dns) ?: buildServFail(dns)
+                // 先查内存缓存：短剧 / 视频 CDN 会反复请求同一批域名，命中则直接回，
+                // 省去一次真实 UDP 网络往返 —— 这是「开 VPN 刷视频卡顿」的核心优化点。
+                val cached = DnsCache.get(domain, dns)
+                if (cached != null) {
+                    cached
+                } else {
+                    val fwd = forward(dns)
+                    if (fwd != null) {
+                        DnsCache.put(domain, fwd)
+                        fwd
+                    } else {
+                        buildServFail(dns)
+                    }
+                }
             }
 
             writeResponse(out, arr, ipHdrLen, srcPort, dstPort, payload)

@@ -54,6 +54,7 @@
     <string name="stats_rules_value">%1$d 条</string>
     <string name="stats_paused">已暂停拦截 · VPN 运行中但不过滤</string>
     <string name="stats_user_hint">开启「暂停拦截」可让某个 App 完全绕过过滤</string>
+    <string name="stats_cache_hits">本次运行已省去 %1$d 次重复 DNS 查询</string>
 
     <!-- 暂停拦截 -->
     <string name="pause_blocking">暂停拦截（排查 App 不兼容）</string>
@@ -123,4 +124,22 @@
     <string name="crash_copy">复制崩溃日志</string>
     <string name="crash_clear">清空</string>
     <string name="crash_copied">崩溃日志已复制到剪贴板</string>
+
+    <!-- 手机优化页 -->
+    <string name="back">返回</string>
+    <string name="entry_optimize_title">手机优化</string>
+    <string name="entry_optimize_desc">清理缓存 / 查看各应用缓存占用 / 后台进程体检</string>
+    <string name="opt_clean_title">清理缓存（本应用）</string>
+    <string name="opt_clean_desc">清理本应用产生的临时文件，安全无副作用，可立即释放空间。</string>
+    <string name="opt_clean_btn">清理缓存</string>
+    <string name="opt_self_cache_current">当前缓存：%1$s</string>
+    <string name="opt_self_freed_empty">上次清理释放：—</string>
+    <string name="opt_self_freed">上次清理释放：%1$s</string>
+    <string name="opt_self_cleared">已清理本应用缓存，释放 %1$s</string>
+    <string name="opt_rank_title">各 App 缓存占用排行</string>
+    <string name="opt_rank_desc">点击任意一项可前往系统设置手动清理。普通应用无权直接清理其它 App 的缓存（需系统权限）。</string>
+    <string name="opt_cache_empty">暂无其它 App 的缓存数据（或系统未授权读取）</string>
+    <string name="opt_proc_title">后台进程体检</string>
+    <string name="opt_process_count">当前可见后台进程：%1$d</string>
+    <string name="opt_proc_desc">说明：安卓会自行回收内存，强行结束后台进程反而更耗电、App 重启更慢。本页只做真实有效的优化——清理缓存。</string>
 </resources>

@@ -142,6 +142,12 @@
             </intent-filter>
         </receiver>
 
+        <!-- 手机优化：清理缓存 / 各 App 缓存占用排行 / 后台进程体检 -->
+        <activity
+            android:name=".PhoneOptimizeActivity"
+            android:exported="false"
+            android:theme="@style/AppTheme" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

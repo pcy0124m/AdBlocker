@@ -150,6 +150,12 @@ class MainActivity : AppCompatActivity() {
             refreshStats()
         }
 
+        // 手机优化入口：清理缓存 / 缓存占用排行 / 后台进程体检
+        findViewById<MaterialCardView>(R.id.cardOptimize)
+            .setOnClickListener {
+                startActivity(Intent(this, PhoneOptimizeActivity::class.java))
+            }
+
         updateVpnButton()
     }
 
@@ -256,6 +262,7 @@ class MainActivity : AppCompatActivity() {
                 HostsUpdater.refresh()
                 val n = HostsUpdater.size()
                 withContext(Dispatchers.Main) {
+                    DnsCache.clear()
                     toast(getString(R.string.rules_updated, n))
                     refreshStats()
                 }

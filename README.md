@@ -36,6 +36,7 @@ App 启动
 │     └─ 仅把发往虚拟 DNS 10.0.0.1 的流量引入隧道
 │           ├─ DNS 查询命中广告域名 → 返回 NXDOMAIN（广告被掐）
 │           └─ 否则转发到上游 223.5.5.5 → 正常解析
+│                 └─ 解析结果内存缓存 60s：重复查询直接命中，不再走网络（省电 / 防卡顿）
 │
 ├─ 申请「来电筛查」角色（CallBlockerService）
 │     └─ 来电命中黑名单 → 拒接 + 写入拦截记录
@@ -158,6 +159,7 @@ certutil -encode release.keystore release.b64 && type release.b64
 - **VPN 前台服务类型**：targetSdk 34 下 `AdBlockVpnService` 已声明 `android:foregroundServiceType="specialUse"`（含对应 `<property>`），否则在 Android 14 上 `startForeground` 会崩溃。如需上架 Google Play，需在该类型下补充 `specialUse` 的说明。
 - **开机自启受系统省电策略影响**：部分国产 ROM 需在「自启动管理」里额外放行本 App，否则开机广播可能不触发。
 - **VPN 常驻略耗电**：后台保持隧道会带来少量电量开销。
+- **DNS 应答缓存（默认开启）**：热门域名 60s 内重复解析命中内存缓存、不再走网络，可显著降低「开 VPN 刷视频卡」并省电；暂停 / 恢复拦截或更新规则时自动清空缓存。如需调整时长改 `util/DnsCache.kt` 的 `TTL_MS`。
 - **上游 DNS 必须国内可达**：早期版本把上游写成 `8.8.8.8`，该地址在部分网络下不可达，会导致开启 VPN 后**全部域名解析失败**（表现为 App 打不开、视频加载不出来）。现已改为 `223.5.5.5` / `119.29.29.29` / `114.114.114.114` 多上游回退；`8.8.8.8` 仅作最后兜底。若你自建/替换 DNS，请注意这一点。
 - **DNS 转发必须带超时**：每次转发使用独立 socket 且设置 `soTimeout`。若沿用无限阻塞的 `receive()`，上游丢包时该线程会永久卡死，并发数耗尽后**全网 DNS 瘫痪**。
 - **编译状态**：已通过 GitHub Actions（debug + 签名 release 两条流水线）实际编译验证；真机行为仍建议自行走查一遍。
