@@ -52,6 +52,8 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+        // 放大错误上限，避免一次只报前几个 unresolved 而把真正的根因错误截断
+        freeCompilerArgs = freeCompilerArgs + listOf("-Xmax-errors=200")
     }
 }
 

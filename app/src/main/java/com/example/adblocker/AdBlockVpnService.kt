@@ -17,6 +17,7 @@ import com.example.adblocker.util.buildNxdomain
 import com.example.adblocker.util.buildServFail
 import com.example.adblocker.util.calcChecksum
 import com.example.adblocker.util.extractQueryName
+import com.example.adblocker.util.DnsCache
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.net.DatagramPacket

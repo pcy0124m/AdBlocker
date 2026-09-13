@@ -27,6 +27,7 @@ import com.google.android.material.textfield.TextInputEditText
 import com.example.adblocker.data.BlockType
 import com.example.adblocker.util.BlockLog
 import com.example.adblocker.util.CrashHandler
+import com.example.adblocker.util.DnsCache
 import com.example.adblocker.util.HostsUpdater
 import com.example.adblocker.util.Prefs
 import kotlinx.coroutines.*
