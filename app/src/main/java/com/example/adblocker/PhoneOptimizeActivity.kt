@@ -84,7 +84,7 @@ class PhoneOptimizeActivity : AppCompatActivity() {
         val total = memInfo.totalMem          // 字节
         val avail = memInfo.availMem         // 字节
         val used = total - avail
-        val percent = if (total > 0) (used * 100 / total).coerceIn(0, 100) else 0
+        val percent = if (total > 0) (used * 100 / total).coerceIn(0, 100).toInt() else 0
 
         tvMemTotal.text = formatSize(total)
         tvMemAvail.text = formatSize(avail)
