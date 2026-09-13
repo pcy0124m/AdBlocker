@@ -9,6 +9,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Process
 import android.os.storage.StorageManager
+import android.provider.Settings
 import android.text.format.Formatter
 import java.io.File
 
@@ -80,6 +81,21 @@ object StorageHelper {
             }
         }
         return result.sortedByDescending { it.cacheBytes }
+    }
+
+    /** 全机各 App 可清理的缓存总量（只读估算，用于提示「手机垃圾约 X」）。 */
+    fun totalCacheBytes(context: Context): Long =
+        appCacheList(context).sumOf { it.cacheBytes }
+
+    /**
+     * 跳转系统「释放空间 / 存储管理」做全机清理。
+     * 普通应用无权直接清其它 App 缓存，但系统自带的存储清理可以——这是真正能「清理手机」的入口。
+     * 优先 ACTION_MANAGE_STORAGE（存储管理器，可一键清全机缓存），不支持时退回内部存储设置页。
+     */
+    fun phoneCleanerIntent(context: Context): Intent {
+        val primary = Intent(Settings.ACTION_MANAGE_STORAGE)
+        if (primary.resolveActivity(context.packageManager) != null) return primary
+        return Intent(Settings.ACTION_INTERNAL_STORAGE_SETTINGS)
     }
 
     /** 后台可见进程数（仅当前用户；Android 10+ 受限制，数字仅供参考）。 */

@@ -128,10 +128,15 @@
     <!-- 手机优化页 -->
     <string name="back">返回</string>
     <string name="entry_optimize_title">手机优化</string>
-    <string name="entry_optimize_desc">清理缓存 / 查看各应用缓存占用 / 后台进程体检</string>
+    <string name="entry_optimize_desc">清理手机垃圾 / 查看各应用缓存占用 / 后台进程体检</string>
+    <string name="opt_phone_title">手机垃圾清理</string>
+    <string name="opt_phone_desc">普通应用没有权限直接清理其它 App 的缓存。点击下方按钮跳转到系统「释放空间」，由系统统一清理全机各应用的缓存与临时文件——最彻底也最安全。</string>
+    <string name="opt_phone_estimate">手机可清理的缓存约 %1$s</string>
+    <string name="opt_phone_btn">去清理手机垃圾</string>
+    <string name="opt_self_label">仅清理本应用（立竿见影，不影响其它 App）</string>
     <string name="opt_clean_title">清理缓存（本应用）</string>
     <string name="opt_clean_desc">清理本应用产生的临时文件，安全无副作用，可立即释放空间。</string>
-    <string name="opt_clean_btn">清理缓存</string>
+    <string name="opt_clean_btn">清理本应用缓存</string>
     <string name="opt_self_cache_current">当前缓存：%1$s</string>
     <string name="opt_self_freed_empty">上次清理释放：—</string>
     <string name="opt_self_freed">上次清理释放：%1$s</string>
