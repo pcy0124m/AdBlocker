@@ -127,7 +127,29 @@
     <string name="crash_copied">崩溃日志已复制到剪贴板</string>
 
     <!-- 手机优化页 -->
-    <string name="back">返回</string>
+    <string name="opt_page_title">优化清理</string>
+    <string name="opt_mem_title">运行内存</string>
+    <string name="opt_mem_total_label">总内存</string>
+    <string name="opt_mem_avail_label">可用内存</string>
+    <string name="opt_boost_btn">⚡ 一键加速</string>
+    <string name="opt_storage_title">存储清理</string>
+    <string name="opt_scan_btn">扫描垃圾</string>
+    <string name="opt_clear_cache_btn">清理缓存</string>
+    <string name="opt_self_cache_label">本应用缓存</string>
+    <string name="opt_clear_selected_btn">清理选中</string>
+    <string name="opt_app_settings_btn">应用设置</string>
+    <string name="opt_log_title">操作日志</string>
+
+    <!-- 日志模板 -->
+    <string name="log_boost_result">⚡一键加速完成：尝试结束 %1$d 个后台进程（受系统限制），共 %2$d 个后台进程，并清理本应用缓存释放 %3$s</string>
+    <string name="log_scan_result">🔍 扫描完成：发现 %1$d 个应用有缓存，合计约 %2$s 可清理</string>
+    <string name="log_clear_self_result">🧹 已清理本应用缓存，释放 %1$s</string>
+
+    <!-- Toast 提示 -->
+    <string name="toast_boost_done">加速完成：已清理本应用缓存，释放 %1$s</string>
+    <string name="toast_scan_result">扫描完成：共 %1$d 个应用有缓存，约 %2$s</string>
+
+    <!-- 保留旧字符串（部分布局可能仍引用） -->
     <string name="entry_optimize_title">手机优化</string>
     <string name="entry_optimize_desc">清理手机垃圾 / 查看各应用缓存占用 / 后台进程体检</string>
     <string name="opt_phone_title">手机垃圾清理</string>
