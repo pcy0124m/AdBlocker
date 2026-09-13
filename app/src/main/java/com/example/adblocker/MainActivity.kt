@@ -20,9 +20,12 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.chip.ChipGroup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.textfield.TextInputEditText
+import com.example.adblocker.data.BlockType
+import com.example.adblocker.util.BlockLog
 import com.example.adblocker.util.CrashHandler
 import com.example.adblocker.util.HostsUpdater
 import com.example.adblocker.util.Prefs
@@ -52,8 +55,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvStatsNote: TextView
     private lateinit var cardCrash: MaterialCardView
     private lateinit var tvCrashLog: TextView
+    private lateinit var rvLogs: RecyclerView
+    private lateinit var tvLogsEmpty: TextView
+    private lateinit var tvLogSummary: TextView
+    private lateinit var chipGroupLogs: ChipGroup
     private lateinit var adapter: NumberAdapter
     private lateinit var whitelistAdapter: NumberAdapter
+    private lateinit var logAdapter: BlockLogAdapter
 
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
@@ -103,6 +111,18 @@ class MainActivity : AppCompatActivity() {
         rvWhitelist.adapter = whitelistAdapter
         refreshWhitelist()
 
+        // 拦截记录：电话 / 短信共用一份列表，用 Chip 做筛选
+        rvLogs = findViewById(R.id.rvLogs)
+        tvLogsEmpty = findViewById(R.id.tvLogsEmpty)
+        tvLogSummary = findViewById(R.id.tvLogSummary)
+        chipGroupLogs = findViewById(R.id.chipGroupLogs)
+        logAdapter = BlockLogAdapter()
+        rvLogs.layoutManager = LinearLayoutManager(this)
+        rvLogs.adapter = logAdapter
+        refreshLogs()
+        chipGroupLogs.setOnCheckedStateChangeListener { _, _ -> refreshLogs(currentLogFilter()) }
+        findViewById<MaterialButton>(R.id.btnClearLogs).setOnClickListener { confirmClearLogs() }
+
         btnVpn.setOnClickListener { toggleVpn() }
         btnCall.setOnClickListener { requestCallScreening() }
         btnSms.setOnClickListener { requestSmsRole() }
@@ -138,6 +158,8 @@ class MainActivity : AppCompatActivity() {
         // 从系统设置页返回时，角色状态可能已变化，这里刷新一次
         updateVpnButton()
         refreshCrashCard()
+        // 拦截记录由服务和广播接收器在后台写入，每次回到前台刷新一下
+        refreshLogs(currentLogFilter())
     }
 
     override fun onPause() {
@@ -401,6 +423,50 @@ class MainActivity : AppCompatActivity() {
         val items = HostsUpdater.whiteList()
         whitelistAdapter.submit(items)
         tvWhitelistEmpty.visibility = if (items.isEmpty()) View.VISIBLE else View.GONE
+    }
+
+    // ---------- 拦截记录（电话 / 短信） ----------
+    /** 当前筛选的拦截类型，null = 全部。 */
+    private fun currentLogFilter(): Int? = when (chipGroupLogs.checkedChipId) {
+        R.id.chipCall -> BlockType.CALL
+        R.id.chipSms -> BlockType.SMS
+        else -> null
+    }
+
+    private fun refreshLogs(type: Int? = null) {
+        val items = BlockLog.recent(this, type)
+        logAdapter.submit(items)
+
+        val total = BlockLog.count(this)
+        val callCount = BlockLog.count(this, BlockType.CALL)
+        val smsCount = BlockLog.count(this, BlockType.SMS)
+
+        if (total == 0) {
+            tvLogSummary.setText(R.string.logs_summary_empty)
+        } else {
+            tvLogSummary.text = getString(R.string.logs_summary, total, callCount, smsCount)
+        }
+
+        if (items.isEmpty()) {
+            tvLogsEmpty.visibility = View.VISIBLE
+            // 区分「一条都没拦到」和「只是当前筛选为空」，提示更准确
+            tvLogsEmpty.setText(if (total == 0) R.string.empty_logs else R.string.empty_logs_filtered)
+        } else {
+            tvLogsEmpty.visibility = View.GONE
+        }
+    }
+
+    private fun confirmClearLogs() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.logs_clear)
+            .setMessage(R.string.logs_clear_confirm)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                BlockLog.clear(this)
+                refreshLogs(currentLogFilter())
+                toast(getString(R.string.logs_cleared))
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     // ---------- 回调 ----------

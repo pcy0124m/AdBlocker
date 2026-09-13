@@ -8,6 +8,7 @@ import android.os.Build
 import android.provider.Telephony
 import android.telephony.SmsMessage
 import android.util.Log
+import com.example.adblocker.util.BlockLog
 import com.example.adblocker.util.SmsNotifier
 
 /**
@@ -69,9 +70,23 @@ class SmsReceiver : BroadcastReceiver() {
         }
         if (number == null) return
 
-        val blocked = BlockListManager.isBlocked(number) || containsSpam(body.toString())
+        val blockedByList = BlockListManager.isBlocked(number)
+        val blockedByKeyword = !blockedByList && containsSpam(body.toString())
+        val blocked = blockedByList || blockedByKeyword
 
         if (blocked) {
+            // 记一笔拦截记录（含号码 + 正文摘要 + 命中原因），界面上可查看
+            try {
+                BlockLog.logSms(
+                    context,
+                    number,
+                    body.toString(),
+                    if (blockedByList) BlockLog.REASON_BLACKLIST else BlockLog.REASON_KEYWORD
+                )
+            } catch (_: Exception) {
+                // 记录失败不影响拦截
+            }
+
             if (isDeliver) {
                 // 默认短信 App：不落库即不显示，实现真正拦截。
                 return

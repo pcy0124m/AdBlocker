@@ -60,6 +60,26 @@
     <string name="pause_enabled">已暂停拦截：VPN 仍在运行，但不再过滤任何域名</string>
     <string name="pause_disabled">已恢复拦截</string>
 
+    <!-- 拦截记录（电话 / 短信） -->
+    <string name="section_logs">拦截记录</string>
+    <string name="logs_summary">共 %1$d 条 · 电话 %2$d / 短信 %3$d</string>
+    <string name="logs_summary_empty">暂无记录</string>
+    <string name="filter_all">全部</string>
+    <string name="filter_call">电话</string>
+    <string name="filter_sms">短信</string>
+    <string name="log_type_call">电话</string>
+    <string name="log_type_sms">短信</string>
+    <string name="log_count">×%1$d</string>
+    <string name="log_unknown_number">未知号码</string>
+    <string name="log_reason_blacklist">命中黑名单</string>
+    <string name="log_reason_keyword">命中垃圾关键词</string>
+    <string name="empty_logs">暂无拦截记录。开启上方的电话 / 短信拦截后，被拦下的号码和信息会显示在这里。</string>
+    <string name="empty_logs_filtered">当前筛选条件下没有记录，切换到「全部」看看。</string>
+    <string name="logs_clear">清空拦截记录</string>
+    <string name="logs_clear_confirm">将删除全部拦截记录（不影响黑名单）。确定清空吗？</string>
+    <string name="logs_cleared">拦截记录已清空</string>
+    <string name="logs_note">最多保留最近 300 条；同一号码 1 分钟内的重复拦截会合并为一条并累加次数。</string>
+
     <!-- 域名白名单 -->
     <string name="section_whitelist">域名白名单（放行误拦截）</string>
     <string name="hint_whitelist">如 example.com 或 *.example.com</string>

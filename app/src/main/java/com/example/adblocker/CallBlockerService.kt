@@ -4,6 +4,7 @@ import android.os.Build
 import android.telecom.Call
 import android.telecom.CallScreeningService
 import androidx.annotation.RequiresApi
+import com.example.adblocker.util.BlockLog
 
 /**
  * 骚扰电话拦截服务（Android 7.0+）。
@@ -18,13 +19,27 @@ import androidx.annotation.RequiresApi
 class CallBlockerService : CallScreeningService() {
 
     override fun onScreenCall(details: Call.Details) {
+        val number = try {
+            details.handle?.schemeSpecificPart
+        } catch (_: Exception) {
+            null
+        }
+
         val block = try {
             BlockListManager.init(applicationContext)
-            val number = details.handle?.schemeSpecificPart
-            if (number.isNullOrEmpty()) false else BlockListManager.isBlocked(number)
+            !number.isNullOrEmpty() && BlockListManager.isBlocked(number)
         } catch (_: Exception) {
             // 查询失败时按「不拦截」处理，优先保证来电能正常接通
             false
+        }
+
+        if (block && !number.isNullOrEmpty()) {
+            // 记一笔拦截记录，界面上就能看到「拦了谁、什么时候拦的」
+            try {
+                BlockLog.logCall(applicationContext, number, BlockLog.REASON_BLACKLIST)
+            } catch (_: Exception) {
+                // 记录失败不影响拒接
+            }
         }
 
         try {

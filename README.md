@@ -17,6 +17,7 @@
 | 垃圾短信 | `SmsReceiver` 接收短信广播，命中黑名单 / 关键词拦截 | **彻底拦截**需设为默认短信 App（须凑齐 4 个资格组件）；否则只能尽力拦截 |
 | 开机自启 | `BootReceiver` 监听 `BOOT_COMPLETED`，自动拉起 VPN（需先手动授权过 VPN） | 无需额外权限（`RECEIVE_BOOT_COMPLETED` 为普通权限） |
 | 拦截统计 | 显示累计拦截 DNS 查询次数与规则库域名数 | — |
+| 拦截记录 | 记录每一条被拦下的**来电号码 / 短信正文 + 命中原因 + 时间**，可按电话 / 短信筛选，支持一键清空 | — |
 | 暂停拦截 | 一键让 VPN 只转发不过滤，用于排查某个 App 联网异常 | — |
 | 域名白名单 | 被误拦截的域名（如视频 / 短剧 CDN）加入后立即放行，支持 `*.example.com` | — |
 
@@ -32,21 +33,25 @@
 ```
 App 启动
  ├─ 开启 VPN（AdBlockVpnService）
- │     └─ 仅把发往虚拟 DNS 10.0.0.1 的流量引入隧道
- │           ├─ DNS 查询命中广告域名 → 返回 NXDOMAIN（广告被掐）
- │           └─ 否则转发到上游 8.8.8.8 → 正常解析
- │
- ├─ 申请「来电筛查」角色（CallBlockerService）
- │     └─ 来电命中黑名单 → 拒接
- │
- ├─ 短信接收（SmsReceiver）
- │     └─ 短信命中黑名单 / 关键词 → 拦截
- │
- └─ 开机广播（BootReceiver）
-       └─ 开关为开 且 VPN 已授权 → 自动启动 VPN
+│     └─ 仅把发往虚拟 DNS 10.0.0.1 的流量引入隧道
+│           ├─ DNS 查询命中广告域名 → 返回 NXDOMAIN（广告被掐）
+│           └─ 否则转发到上游 223.5.5.5 → 正常解析
+│
+├─ 申请「来电筛查」角色（CallBlockerService）
+│     └─ 来电命中黑名单 → 拒接 + 写入拦截记录
+│
+├─ 短信接收（SmsReceiver）
+│     └─ 短信命中黑名单 / 关键词 → 拦截 + 写入拦截记录
+│
+└─ 开机广播（BootReceiver）
+      └─ 开关为开 且 VPN 已授权 → 自动启动 VPN
 ```
 
 黑名单（电话 / 短信共用）存于 Room 数据库 `BlockListDatabase`，由 `BlockListManager` 单例做内存缓存。
+拦截记录（`blocked_events` 表）由 `util/BlockLog.kt` 读写：为兼容 `BroadcastReceiver` /
+`CallScreeningService` 这类没有协程作用域、进程随时可能被回收的调用方，这里刻意用**同步 DAO**
+写入（单行插入毫秒级，且数据库已开启 `allowMainThreadQueries`），并在写入前合并「同号码 1 分钟
+内的重复拦截」，最多保留 300 条。
 「开机自启」开关存于 `SharedPreferences`（`util/Prefs.kt`）。
 
 ---
@@ -178,12 +183,14 @@ AdBlocker/
 │   │   ├─ MmsReceiver.kt         # 彩信到达广播（资格组件，不做彩信解析）
 │   │   ├─ BootReceiver.kt        # 开机自启 VPN
 │   │   ├─ MainActivity.kt        # UI 与权限申请
-│   │   ├─ data/BlockListDatabase.kt
+│   │   ├─ BlockLogAdapter.kt     # 拦截记录列表适配器
+│   │   ├─ data/BlockListDatabase.kt  # 黑名单表 + 拦截记录表（blocked_events）
 │   │   ├─ BlockListManager.kt    # 黑名单单例缓存
 │   │   └─ util/
 │   │       ├─ DnsUtils.kt        # DNS 包解析 / NXDOMAIN / SERVFAIL 构造
 │   │       ├─ HostsLoader.kt     # 内置 hosts 解析
 │   │       ├─ HostsUpdater.kt    # 在线规则订阅源 + 白名单 + 拦截统计
+│   │       ├─ BlockLog.kt        # 电话/短信拦截记录读写（含重复合并）
 │   │       ├─ SmsNotifier.kt     # 放行短信通知（默认短信 App 场景必需）
 │   │       └─ Prefs.kt           # 本地偏好（自启 / 暂停 / 白名单 / 累计拦截数）
 │   └─ res/...
