@@ -93,7 +93,10 @@ object StorageHelper {
      * 优先 ACTION_MANAGE_STORAGE（存储管理器，可一键清全机缓存），不支持时退回内部存储设置页。
      */
     fun phoneCleanerIntent(context: Context): Intent {
-        val primary = Intent(Settings.ACTION_MANAGE_STORAGE)
+        // 用字符串字面量而非 Settings.ACTION_MANAGE_STORAGE：该常量在本工程编译环境的 stub 中
+        // 偶发解析不到（Unresolved reference），字面量等价且兼容；旧设备若无此 Activity，
+        // resolveActivity 会返回空，自动退回内部存储设置页。
+        val primary = Intent("android.settings.MANAGE_STORAGE")
         if (primary.resolveActivity(context.packageManager) != null) return primary
         return Intent(Settings.ACTION_INTERNAL_STORAGE_SETTINGS)
     }
