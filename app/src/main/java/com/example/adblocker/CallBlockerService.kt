@@ -25,18 +25,25 @@ class CallBlockerService : CallScreeningService() {
             null
         }
 
-        val block = try {
+        val blockedByList = try {
             BlockListManager.init(applicationContext)
             !number.isNullOrEmpty() && BlockListManager.isBlocked(number)
         } catch (_: Exception) {
-            // 查询失败时按「不拦截」处理，优先保证来电能正常接通
             false
         }
+        // 内置骚扰号段库：境外 / 虚拟运营商转售号段（开箱即用，无需手动加黑名单）
+        val blockedByPrefix = try {
+            !number.isNullOrEmpty() && SpamRules.isSpamCall(number)
+        } catch (_: Exception) {
+            false
+        }
+        val block = blockedByList || blockedByPrefix
 
         if (block && !number.isNullOrEmpty()) {
-            // 记一笔拦截记录，界面上就能看到「拦了谁、什么时候拦的」
+            // 记一笔拦截记录，界面上就能看到「拦了谁、什么时候拦的、为什么拦」
             try {
-                BlockLog.logCall(applicationContext, number, BlockLog.REASON_BLACKLIST)
+                val reason = if (blockedByList) BlockLog.REASON_BLACKLIST else BlockLog.REASON_PREFIX
+                BlockLog.logCall(applicationContext, number, reason)
             } catch (_: Exception) {
                 // 记录失败不影响拒接
             }

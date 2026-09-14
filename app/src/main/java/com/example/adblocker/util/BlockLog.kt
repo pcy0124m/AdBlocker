@@ -32,6 +32,7 @@ object BlockLog {
     /** 拦截原因代码（存库，不存中文文案）。 */
     const val REASON_BLACKLIST = "blacklist"
     const val REASON_KEYWORD = "keyword"
+    const val REASON_PREFIX = "prefix"
 
     /** 短信正文入库前的截断长度，避免一条超长营销短信撑爆记录表。 */
     private const val MAX_CONTENT = 300

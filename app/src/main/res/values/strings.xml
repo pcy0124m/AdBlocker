@@ -170,4 +170,6 @@
     <string name="opt_proc_title">后台进程体检</string>
     <string name="opt_process_count">当前可见后台进程：%1$d</string>
     <string name="opt_proc_desc">说明：安卓会自行回收内存，强行结束后台进程反而更耗电、App 重启更慢。本页只做真实有效的优化——清理缓存。</string>
+    <string name="lib_call_status">内置骚扰号段库：已启用（自动拦境外 / 虚拟运营商来电）</string>
+    <string name="lib_sms_status">内置垃圾词库 + 号段识别：已启用（自动拦营销 / 诈骗短信）</string>
 </resources>

@@ -651,6 +651,15 @@
                     android:textColor="@color/text_secondary"
                     android:textSize="13sp" />
 
+                <TextView
+                    android:id="@+id/tvCallLib"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/lib_call_status"
+                    android:textColor="@color/status_on"
+                    android:textSize="12sp" />
+
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnCall"
                     style="@style/Widget.Material3.Button.OutlinedButton"

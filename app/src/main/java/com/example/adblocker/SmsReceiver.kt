@@ -70,18 +70,20 @@ class SmsReceiver : BroadcastReceiver() {
         }
         if (number == null) return
 
+        // 命中规则来源：① 手动黑名单 ② 内置骚扰库（境外号段 + 垃圾关键词）
         val blockedByList = BlockListManager.isBlocked(number)
-        val blockedByKeyword = !blockedByList && containsSpam(body.toString())
-        val blocked = blockedByList || blockedByKeyword
+        val blockedByRules = !blockedByList && SpamRules.isSpamSms(number, body.toString())
+        val blocked = blockedByList || blockedByRules
 
         if (blocked) {
             // 记一笔拦截记录（含号码 + 正文摘要 + 命中原因），界面上可查看
             try {
+                val reason = if (blockedByList) BlockLog.REASON_BLACKLIST else BlockLog.REASON_KEYWORD
                 BlockLog.logSms(
                     context,
                     number,
                     body.toString(),
-                    if (blockedByList) BlockLog.REASON_BLACKLIST else BlockLog.REASON_KEYWORD
+                    reason
                 )
             } catch (_: Exception) {
                 // 记录失败不影响拦截
@@ -160,14 +162,6 @@ class SmsReceiver : BroadcastReceiver() {
             )
         } catch (_: Exception) {
         }
-    }
-
-    private fun containsSpam(body: String): Boolean {
-        val keywords = listOf(
-            "中奖", "返利", "免费领取", "点击链接", "退订回T",
-            "贷款", "赌博", "优惠促销", "限时特惠", "免息"
-        )
-        return keywords.any { body.contains(it) }
     }
 
     private companion object {

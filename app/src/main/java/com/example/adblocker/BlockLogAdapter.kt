@@ -73,6 +73,7 @@ class BlockLogAdapter : RecyclerView.Adapter<BlockLogAdapter.VH>() {
         holder.tvReason.text = when (item.reason) {
             BlockLog.REASON_BLACKLIST -> ctx.getString(R.string.log_reason_blacklist)
             BlockLog.REASON_KEYWORD -> ctx.getString(R.string.log_reason_keyword)
+            BlockLog.REASON_PREFIX -> ctx.getString(R.string.log_reason_prefix)
             else -> ""
         }
         holder.tvTime.text = BlockLog.timeText(item.time)
