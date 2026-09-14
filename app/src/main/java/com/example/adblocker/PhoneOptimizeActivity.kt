@@ -9,6 +9,7 @@ import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
 import com.example.adblocker.util.StorageHelper
 import com.google.android.material.button.MaterialButton
 import java.text.SimpleDateFormat
@@ -46,6 +47,12 @@ class PhoneOptimizeActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_phone_optimize)
 
+        // 顶部工具栏 + 返回按钮
+        val toolbar = findViewById<Toolbar>(R.id.toolbar)
+        setSupportActionBar(toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.setDisplayShowTitle(false)  // 标题已在布局里用 material:title 设置
+
         tvMemTotal = findViewById(R.id.tvMemTotal)
         tvMemAvail = findViewById(R.id.tvMemAvail)
         tvMemPercent = findViewById(R.id.tvMemPercent)
@@ -72,6 +79,11 @@ class PhoneOptimizeActivity : AppCompatActivity() {
 
         refreshMemory()
         refreshStorage()
+    }
+
+    override fun onSupportNavigateUp(): Boolean {
+        onBackPressed()
+        return true
     }
 
     // ======================== 运行内存 ========================

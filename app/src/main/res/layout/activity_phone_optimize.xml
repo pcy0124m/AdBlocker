@@ -16,13 +16,14 @@
         android:paddingEnd="16dp"
         android:paddingBottom="24dp">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/opt_page_title"
-            android:textColor="@color/text_primary"
-            android:textSize="22sp"
-            android:textStyle="bold" />
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            android:background="?attr/colorPrimary"
+            material:navigationIcon="?attr/homeAsUpIndicator"
+            material:title="@string/opt_page_title"
+            material:titleTextColor="@android:color/white" />
 
         <!-- 1. 运行内存 -->
         <com.google.android.material.card.MaterialCardView
