@@ -74,6 +74,7 @@
     <string name="log_unknown_number">未知号码</string>
     <string name="log_reason_blacklist">命中黑名单</string>
     <string name="log_reason_keyword">命中垃圾关键词</string>
+    <string name="log_reason_prefix">命中骚扰号段</string>
     <string name="empty_logs">暂无拦截记录。开启上方的电话 / 短信拦截后，被拦下的号码和信息会显示在这里。</string>
     <string name="empty_logs_filtered">当前筛选条件下没有记录，切换到「全部」看看。</string>
     <string name="logs_clear">清空拦截记录</string>
