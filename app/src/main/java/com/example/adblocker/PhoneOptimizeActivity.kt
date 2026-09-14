@@ -50,8 +50,7 @@ class PhoneOptimizeActivity : AppCompatActivity() {
         // 顶部工具栏 + 返回按钮
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
         setSupportActionBar(toolbar)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        supportActionBar?.setDisplayShowTitle(false)  // 标题已在布局里用 material:title 设置
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)  // 标题已在布局里用 material:title 设置
 
         tvMemTotal = findViewById(R.id.tvMemTotal)
         tvMemAvail = findViewById(R.id.tvMemAvail)
