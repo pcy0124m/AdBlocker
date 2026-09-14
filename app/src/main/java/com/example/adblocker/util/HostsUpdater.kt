@@ -28,7 +28,14 @@ object HostsUpdater {
     private const val TAG = "HostsUpdater"
     private const val RECENT_MAX = 50
 
+    /**
+     * 在线订阅源（hosts 格式）。顺序：国内源优先（用户多在国内容易被墙的是海外源，
+     * 但 yhosts 至少含大量国内广告域名）；adaway / StevenBlack 作为海外补充。
+     * 注意：这些源均为 GitHub Raw，国内网络可能偏慢或偶发不可达——
+     * 因此内置 hosts.txt 已自带国内广告域名作为离线兜底，更新失败也不影响基本拦截。
+     */
     private val subscriptions = listOf(
+        "https://raw.githubusercontent.com/vokins/yhosts/master/hosts",
         "https://adaway.org/hosts.txt",
         "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts"
     )
@@ -125,8 +132,8 @@ object HostsUpdater {
             for (url in subscriptions) {
                 try {
                     val conn = URL(url).openConnection() as HttpURLConnection
-                    conn.connectTimeout = 15000
-                    conn.readTimeout = 15000
+                    conn.connectTimeout = 10000
+                    conn.readTimeout = 10000
                     conn.inputStream.bufferedReader().useLines { lines ->
                         for (raw in lines) {
                             val line = raw.trim()

@@ -1,5 +1,10 @@
 # AdBlocker 广告域名清单（每行一个域名，或 "0.0.0.0 域名" 格式）
 # 命中后 DNS 请求返回 NXDOMAIN，广告即无法加载。
+# 匹配采用父域匹配：写入 ad.qq.com 只会拦 *.ad.qq.com，不会误伤 qq.com / www.qq.com。
+# 说明：海外通用广告/分析域名 + 国内 App 开屏/信息流/SDK 广告域名，离线即用。
+# 想拿到更全的规则，可在 App 内点「更新规则」拉取在线订阅源（含 yhosts 大规则集）。
+
+# ===================== 海外通用广告 / 分析 =====================
 doubleclick.net
 googleadservices.com
 googlesyndication.com
@@ -9,6 +14,7 @@ admob.com
 adsrvr.org
 adform.net
 criteo.com
+criteo.net
 pubmatic.com
 rubiconproject.com
 openx.net
@@ -19,12 +25,10 @@ scorecardresearch.com
 quantserve.com
 adroll.com
 amazon-adsystem.com
-scorecardresearch.com
 moatads.com
 analytics.tiktok.com
 ads.tiktok.com
 pagedata.tiktok.com
-facebook.com/tr
 connect.facebook.net
 static.ads-twitter.com
 adsystem.com
@@ -53,18 +57,16 @@ inmobi.com
 smaato.com
 startapp.com
 mobfox.com
- fostermedia.com
+fostermedia.com
 yieldmo.com
- fluct.jp
+fluct.jp
 adingo.jp
 logicad.jp
 nend.net
 axonix.com
 smartadserver.com
-criteo.net
 bidswitch.net
 iasds01.com
-moatads.com
 demdex.net
 omtrdc.net
 everesttech.net
@@ -81,3 +83,90 @@ amplitude.com
 appsflyer.com
 branch.io
 adjust.com
+
+# ===================== 国内广告 / 追踪 / 推送 SDK =====================
+# 腾讯广告
+ad.qq.com
+e.qq.com
+gdt.qq.com
+union.qq.com
+tads.qq.com
+pos.qq.com
+tadm.qq.com
+# 百度广告 / 统计
+mobads.baidu.com
+cpro.baidu.com
+cb.baidu.com
+dd.baidu.com
+hm.baidu.com
+pos.baidu.com
+dsp.baidu.com
+ad.baidu.com
+# 阿里妈妈 / 淘宝广告
+ad.alimama.com
+m.alimama.com
+tanx.com
+ad.taobao.com
+# 字节 / 巨量引擎 / 穿山甲
+ad.toutiao.com
+pangle.cn
+cs.pangle.cn
+ad.oceanengine.com
+# 快手广告
+ad.kuaishou.com
+ads.kuaishou.com
+# 小米广告
+ad.xiaomi.com
+ssp.xiaomi.com
+ad.mi.com
+# 华为广告
+ads.huawei.com
+ad.huawei.com
+analytics.huawei.com
+# 360 广告
+ad.360.cn
+adsame.com
+# 新浪广告
+ad.sina.com.cn
+ads.sina.com.cn
+sax.sina.com.cn
+sinaad.com
+# 网易广告 / 统计
+alpha.163.com
+maidian.163.com
+ad.netease.com
+# 搜狐广告
+ad.sohu.com
+ads.sohu.com
+# 京东广告
+ad.jd.com
+adfe.jd.com
+# 统计 / 分析 SDK（拦截仅影响统计，不影响 App 正常使用）
+umeng.com
+u.umeng.com
+m.umeng.com
+ar.umeng.com
+mobclick.net
+talkingdata.com
+igexin.com
+jpush.cn
+jpush.io
+sensorsdata.cn
+growingio.com
+gio.ren
+mta.qq.com
+collect.qq.com
+# 广告平台 / 联盟
+adview.com
+domob.cn
+madhouse.cn
+mobvista.com
+mintegral.com
+adsmogo.com
+zplay.cn
+# 通用站点统计
+51.la
+a.51.la
+s22.cnzz.com
+v1.cnzz.com
+z1.cnzz.com
