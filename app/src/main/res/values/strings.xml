@@ -173,4 +173,11 @@
     <string name="opt_proc_desc">说明：安卓会自行回收内存，强行结束后台进程反而更耗电、App 重启更慢。本页只做真实有效的优化——清理缓存。</string>
     <string name="lib_call_status">内置骚扰号段库：已启用（自动拦境外 / 虚拟运营商来电）</string>
     <string name="lib_sms_status">内置垃圾词库 + 号段识别：已启用（自动拦营销 / 诈骗短信）</string>
+
+    <!-- 电话拦截：ColorOS 限制诊断与引导 -->
+    <string name="call_role_granted">已开启来电拦截：命中骚扰号段会直接拒接</string>
+    <string name="call_unsupported_title">本机不支持第三方来电拦截</string>
+    <string name="call_unsupported_msg">您的手机系统（ColorOS）未授予本应用来电拦截权限，因此无法自动挂断骚扰电话——这是系统层限制，并非应用问题。\n\n建议改用 OPPO 系统自带的骚扰拦截（识别库更强、更可靠）：\n· 打开「电话」App → 右上角 ⋮ → 设置 → 骚扰拦截\n· 或 设置 → 安全 → 骚扰拦截\n开启后系统会自动拦截骚扰来电。\n\n本应用的「黑名单」仍可手动添加号码，并在拦截记录中查看。</string>
+    <string name="call_open_dialer">打开电话 App</string>
+    <string name="call_unsupported_ok">我知道了</string>
 </resources>

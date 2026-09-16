@@ -293,17 +293,42 @@ class MainActivity : AppCompatActivity() {
     private fun requestCallScreening() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val rm = getSystemService(RoleManager::class.java)
-            if (rm != null && !rm.isRoleHeld(RoleManager.ROLE_CALL_SCREENING)) {
-                startActivityForResult(
-                    rm.createRequestRoleIntent(RoleManager.ROLE_CALL_SCREENING),
-                    REQ_CALL
-                )
-            } else {
-                toast("电话拦截已开启")
+            when {
+                rm == null || !rm.isRoleAvailable(RoleManager.ROLE_CALL_SCREENING) -> {
+                    // 系统根本不提供该角色（常见于 ColorOS / MIUI 定制 ROM），
+                    // 不能再谎报「已开启」，直接坦诚说明并引导用系统拦截
+                    showCallUnsupportedDialog()
+                }
+                rm.isRoleHeld(RoleManager.ROLE_CALL_SCREENING) -> {
+                    toast(getString(R.string.call_role_granted))
+                }
+                else -> {
+                    // 发起系统授权页；回来后由 onActivityResult 校验真实授予结果
+                    startActivityForResult(
+                        rm.createRequestRoleIntent(RoleManager.ROLE_CALL_SCREENING),
+                        REQ_CALL
+                    )
+                }
             }
         } else {
             toast("电话拦截需 Android 10+（CallScreeningService）")
         }
+    }
+
+    /** 当系统（如 ColorOS）未授予 ROLE_CALL_SCREENING 时，坦诚告知并引导用系统拦截。 */
+    private fun showCallUnsupportedDialog() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.call_unsupported_title)
+            .setMessage(R.string.call_unsupported_msg)
+            .setPositiveButton(R.string.call_open_dialer) { _, _ ->
+                // 跳到拨号盘（落到系统电话 App），由用户自行进入骚扰拦截设置
+                try {
+                    startActivity(Intent(Intent.ACTION_DIAL))
+                } catch (_: Exception) {
+                }
+            }
+            .setNegativeButton(R.string.call_unsupported_ok, null)
+            .show()
     }
 
     // ---------- 垃圾短信拦截（默认短信 App / 非默认尽力拦） ----------
@@ -498,7 +523,13 @@ class MainActivity : AppCompatActivity() {
         when (requestCode) {
             REQ_VPN -> if (resultCode == RESULT_OK) startVpn() else updateVpnButton()
             REQ_CALL -> {
-                toast("电话拦截权限已设置")
+                // 不能只看 resultCode：ColorOS 常返回 RESULT_OK 但实际未授予角色，
+                // 必须以 isRoleHeld 真实状态为准（与短信逻辑一致）
+                if (isRoleHeld(RoleManager.ROLE_CALL_SCREENING)) {
+                    toast(getString(R.string.call_role_granted))
+                } else {
+                    showCallUnsupportedDialog()
+                }
                 refreshStatus()
             }
             REQ_SMS -> {
