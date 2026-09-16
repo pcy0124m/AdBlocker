@@ -32,7 +32,9 @@ jobs:
       # `sdkmanager tools`，而新版 cmdline-tools 已移除 `tools` 包，导致必失败。
       - name: Setup Android SDK
         run: |
-          export ANDROID_HOME="$HOME/android-sdk"
+          # 关键：必须指向 runner 预置的 ANDROID_SDK_ROOT 同一路径，否则 Gradle 会因
+          # ANDROID_HOME 与 ANDROID_SDK_ROOT 指向不同目录而报「SDK 路径冲突」直接失败。
+          export ANDROID_HOME="/usr/local/lib/android/sdk"
           echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
           mkdir -p "$ANDROID_HOME/cmdline-tools"
           curl -fsSL -o /tmp/cmdtools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
