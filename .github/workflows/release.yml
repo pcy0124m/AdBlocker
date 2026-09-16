@@ -27,14 +27,20 @@ jobs:
           distribution: temurin
           java-version: "17"
 
+      # 手动安装 Android SDK commandlinetools。
+      # 不用 android-actions/setup-android@v3：该 action 在最新 runner 上会执行
+      # `sdkmanager tools`，而新版 cmdline-tools 已移除 `tools` 包，导致必失败。
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      # 注意：sdkmanager 没有 --accept-license 参数，需先用 --licenses 接受许可。
-      - name: Install Android SDK packages
         run: |
+          export ANDROID_HOME="$HOME/android-sdk"
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+          mkdir -p "$ANDROID_HOME/cmdline-tools"
+          curl -fsSL -o /tmp/cmdtools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q /tmp/cmdtools.zip -d "$ANDROID_HOME/cmdline-tools"
+          mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
           yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          sdkmanager --install "platforms;android-34" "build-tools;34.0.0"
+          sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
       - name: Check signing secrets
         run: |
